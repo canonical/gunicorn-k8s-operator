@@ -1,0 +1,4 @@
+PyYAML
+pytest
+pytest-cov
+pytest-subtests
