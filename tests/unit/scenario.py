@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Define tests scenarios."""
 
-import os
 import logging
+import os
+import yaml
 
 from pathlib import Path
 
-import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -95,48 +95,4 @@ TEST_MAKE_K8S_INGRESS = {
             },
         ],
     },
-    #    'ssl': {
-    #        'config': {
-    #            'image_path': 'my_gunicorn_app:devel',
-    #            'my_gunicorn_app_cfg': 'foo',
-    #            'ingress_whitelist_source_range': '10.0.69.0/24',
-    #            'tls_secret_name': 'my_gunicorn_app_secret',
-    #        },
-    #        'pod_spec': {
-    #            'version': 3,  # otherwise resources are ignored
-    #            'containers': [
-    #                {
-    #                    'name': 'gunicorn',
-    #                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel',},
-    #                    'imagePullPolicy': 'Always',
-    #                    'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
-    #                    'envConfig': {},
-    #                }
-    #            ],
-    #            'kubernetesResources': {
-    #                'ingressResources': [
-    #                    {
-    #                        'name': 'gunicorn-ingress',
-    #                        'spec': {
-    #                            'rules': [
-    #                                {
-    #                                    'host': 'example.com',
-    #                                    'http': {
-    #                                        'paths': [
-    #                                            {
-    #                                                'path': '/',
-    #                                                'backend': {'serviceName': 'gunicorn', 'servicePort': 80},
-    #                                            },
-    #                                        ],
-    #                                    },
-    #                                },
-    #                            ],
-    #                            'tls': [{'hosts': ['example.com'], 'secretName': 'my_gunicorn_app_secret',},],
-    #                        },
-    #                        'annotations': {'nginx.ingress.kubernetes.io/whitelist-source-range': '10.0.69.0/24',},
-    #                    },
-    #                ],
-    #            },
-    #        },
-    #    },
 }
