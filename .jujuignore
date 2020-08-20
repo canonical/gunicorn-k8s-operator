@@ -2,3 +2,5 @@
 *.py[cod]
 *.charm
 docker
+*swp
+venv

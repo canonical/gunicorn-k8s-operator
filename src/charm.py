@@ -46,7 +46,7 @@ class GunicornK8sCharm(CharmBase):
         """
         errors = []
         for required in REQUIRED_JUJU_CONFIG:
-            if required not in self.model.config:
+            if required not in self.model.config or not self.model.config[required]:
                 logger.error("Required Juju config not set : %s", required)
                 errors.append(required)
         if errors:
@@ -54,10 +54,8 @@ class GunicornK8sCharm(CharmBase):
                 "Required Juju config not set : {0}".format(", ".join(sorted(errors)))
             )
 
-    def _update_pod_spec_for_k8s_ingress(self, pod_spec: dict) -> None:
-        """Add resources to pod_spec configuring site ingress, if needed.
-
-        :param dict pod_spec: pod spec v3 as defined by juju.
+    def _make_k8s_ingress(self) -> list:
+        """Return an ingress that you can use in k8s_resources
         """
 
         ingress = {
@@ -75,11 +73,7 @@ class GunicornK8sCharm(CharmBase):
             "annotations": {'nginx.ingress.kubernetes.io/ssl-redirect': 'false',},
         }
 
-        # Due to https://github.com/canonical/operator/issues/293 we
-        # can't use pod.set_spec's k8s_resources argument.
-        resources = pod_spec.get('kubernetesResources', {})
-        resources['ingressResources'] = [ingress]
-        pod_spec['kubernetesResources'] = resources
+        return [ingress]
 
     def _make_pod_config(self) -> dict:
         """Return an envConfig with some core configuration.
@@ -137,10 +131,12 @@ class GunicornK8sCharm(CharmBase):
 
         self.unit.status = MaintenanceStatus('Assembling pod spec')
         pod_spec = self._make_pod_spec()
-        self._update_pod_spec_for_k8s_ingress(pod_spec)
+
+        resources = pod_spec.get('kubernetesResources', {})
+        resources['ingressResources'] = self._make_k8s_ingress()
 
         self.unit.status = MaintenanceStatus('Setting pod spec')
-        self.model.pod.set_spec(pod_spec)
+        self.model.pod.set_spec(pod_spec, k8s_resources={'kubernetesResources': resources})
         self.unit.status = ActiveStatus()
 
 

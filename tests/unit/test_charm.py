@@ -22,7 +22,7 @@ from scenario import (
     TEST_JUJU_CONFIG,
     TEST_CONFIGURE_POD,
     TEST_MAKE_POD_SPEC,
-    TEST_UPDATE_POD_SPEC_AND_INGRESS,
+    TEST_MAKE_K8S_INGRESS,
 )
 
 
@@ -87,14 +87,12 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 self.assertEqual(self.harness.charm._make_pod_spec(), values['pod_spec'])
                 self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
 
-    def test_update_pod_spec_for_k8s_ingress(self):
+    def test_make_k8s_ingress(self):
         """Check the crafting of the ingress part of the pod spec."""
-        for scenario, values in TEST_UPDATE_POD_SPEC_AND_INGRESS.items():
+        for scenario, values in TEST_MAKE_K8S_INGRESS.items():
             with self.subTest(scenario=scenario):
                 self.harness.update_config(values['config'])
-                pod_spec = self.harness.charm._make_pod_spec()
-                self.harness.charm._update_pod_spec_for_k8s_ingress(pod_spec)
-                self.assertEqual(pod_spec, values['pod_spec'])
+                self.assertEqual(self.harness.charm._make_k8s_ingress(), values['expected'])
                 self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
 
 

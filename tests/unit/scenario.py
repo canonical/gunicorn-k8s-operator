@@ -75,42 +75,25 @@ TEST_MAKE_POD_SPEC = {
 }
 
 
-TEST_UPDATE_POD_SPEC_AND_INGRESS = {
+TEST_MAKE_K8S_INGRESS = {
     'basic': {
         'config': {'image_path': 'my_gunicorn_app:devel',},
-        'pod_spec': {
-            'version': 3,  # otherwise resources are ignored
-            'containers': [
-                {
-                    'name': 'gunicorn',
-                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel',},
-                    'imagePullPolicy': 'Always',
-                    'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
-                    'envConfig': {},
-                    'kubernetes': {'readinessProbe': {'httpGet': {'path': '/', 'port': 80}}},
-                }
-            ],
-            'kubernetesResources': {
-                'ingressResources': [
-                    {
-                        'name': 'gunicorn-ingress',
-                        'spec': {
-                            'rules': [
-                                {
-                                    'host': 'example.com',
-                                    'http': {
-                                        'paths': [
-                                            {'path': '/', 'backend': {'serviceName': 'gunicorn', 'servicePort': 80},},
-                                        ],
-                                    },
-                                },
-                            ],
+        'expected': [
+            {
+                'name': 'gunicorn-ingress',
+                'spec': {
+                    'rules': [
+                        {
+                            'host': 'example.com',
+                            'http': {
+                                'paths': [{'path': '/', 'backend': {'serviceName': 'gunicorn', 'servicePort': 80},},],
+                            },
                         },
-                        'annotations': {'nginx.ingress.kubernetes.io/ssl-redirect': 'false',},
-                    },
-                ],
+                    ],
+                },
+                'annotations': {'nginx.ingress.kubernetes.io/ssl-redirect': 'false',},
             },
-        },
+        ],
     },
     #    'ssl': {
     #        'config': {

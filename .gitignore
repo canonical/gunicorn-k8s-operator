@@ -1,4 +1,5 @@
 *~
+*swp
 *.charm
 .tox
 .coverage
