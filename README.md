@@ -6,23 +6,9 @@ A charm that allows you to deploy your gunicorn application in kubernetes.
 
 ## Usage
 
-TODO: explain how to use the charm
+juju deploy cs:gunicorn my-awesome-app
+juju config my-awesome-app image\_path=localhost:32000/myapp
 
 ### Scale Out Usage
 
-...
-
-## Developing
-
-Create and activate a virtualenv,
-and install the development requirements,
-
-    virtualenv -p python3 venv
-    source venv/bin/activate
-    pip install -r requirements-dev
-
-## Testing
-
-Just run `run_tests`:
-
-    ./run_tests
+juju add-unit my-awesome-app
