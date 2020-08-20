@@ -1,6 +1,5 @@
-FROM      ubuntu:latest
+FROM ubuntu:latest
 
-#ENV LANG en_US.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update \
