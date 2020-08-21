@@ -18,7 +18,7 @@ from ops.model import (
 )
 
 from scenario import (
-    JUJU_CONFIG,
+    JUJU_DEFAULT_CONFIG,
     TEST_JUJU_CONFIG,
     TEST_CONFIGURE_POD,
     TEST_MAKE_POD_SPEC,
@@ -41,6 +41,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+
         for scenario, values in TEST_JUJU_CONFIG.items():
             with self.subTest(scenario=scenario):
                 self.harness.update_config(values['config'])
@@ -52,20 +54,22 @@ class TestGunicornK8sCharm(unittest.TestCase):
                     self.assertEqual(str(exc.exception), values['expected'])
                 else:
                     self.assertEqual(self.harness.charm._check_juju_config(), None)
-            # You need to clean the config after each run
-            # See https://github.com/canonical/operator/blob/master/ops/testing.py#L415
-            # The second argument is the list of key to reset
-            self.harness.update_config({}, JUJU_CONFIG)
+
+                # You need to clean the config after each run
+                # See https://github.com/canonical/operator/blob/master/ops/testing.py#L415
+                # The second argument is the list of key to reset
+                self.harness.update_config(JUJU_DEFAULT_CONFIG)
 
     def test_configure_pod(self):
         """Test the pod configuration."""
         mock_event = MagicMock()
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
 
         self.harness.set_leader(False)
         self.harness.charm.unit.status = BlockedStatus("Testing")
         self.harness.charm.configure_pod(mock_event)
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
-        self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
         for scenario, values in TEST_CONFIGURE_POD.items():
             with self.subTest(scenario=scenario):
@@ -77,23 +81,27 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 else:
                     self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
-                self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
+                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
     def test_make_pod_spec(self):
         """Check the crafting of the pod spec."""
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+
         for scenario, values in TEST_MAKE_POD_SPEC.items():
             with self.subTest(scenario=scenario):
                 self.harness.update_config(values['config'])
                 self.assertEqual(self.harness.charm._make_pod_spec(), values['pod_spec'])
-                self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
+                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
     def test_make_k8s_ingress(self):
         """Check the crafting of the ingress part of the pod spec."""
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+
         for scenario, values in TEST_MAKE_K8S_INGRESS.items():
             with self.subTest(scenario=scenario):
                 self.harness.update_config(values['config'])
                 self.assertEqual(self.harness.charm._make_k8s_ingress(), values['expected'])
-                self.harness.update_config({}, JUJU_CONFIG)  # You need to clean the config after each run
+                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
 
 if __name__ == '__main__':

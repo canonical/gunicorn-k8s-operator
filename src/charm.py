@@ -18,7 +18,7 @@ from ops.model import (
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_JUJU_CONFIG = ['image_path']
+REQUIRED_JUJU_CONFIG = ['image_path', 'external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
 
 
@@ -51,7 +51,7 @@ class GunicornK8sCharm(CharmBase):
         # Verify required items
         errors = []
         for required in REQUIRED_JUJU_CONFIG:
-            if required not in self.model.config or not self.model.config[required]:
+            if not self.model.config[required]:
                 logger.error("Required Juju config item not set : %s", required)
                 errors.append(required)
         if errors:
@@ -87,12 +87,14 @@ class GunicornK8sCharm(CharmBase):
         """Return an ingress that you can use in k8s_resources
         """
 
+        hostname = self.model.config['external_hostname']
+
         ingress = {
             "name": "{}-ingress".format(self.app.name),
             "spec": {
                 "rules": [
                     {
-                        "host": "example.com",
+                        "host": hostname,
                         "http": {
                             "paths": [{"path": "/", "backend": {"serviceName": self.app.name, "servicePort": 80},}]
                         },

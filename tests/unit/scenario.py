@@ -11,7 +11,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def get_juju_config() -> list:
+def get_juju_default_config() -> dict:
     """Return the list of juju settings as defined in config.yaml."""
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -19,43 +19,94 @@ def get_juju_config() -> list:
     with open(config_yaml, 'r') as config:
         loaded_config = yaml.safe_load(config.read())
 
-    return list(loaded_config['options'].keys())
+    ret = {}
+
+    for k, v in loaded_config['options'].items():
+        ret[k] = v['default']
+
+    return ret
 
 
-# List of all juju settings. Used to clear them between tests
-JUJU_CONFIG = get_juju_config()
+JUJU_DEFAULT_CONFIG = get_juju_default_config()
 
 TEST_JUJU_CONFIG = {
-    'missing_image_path': {
+    'defaults': {
         'config': {},
+        'logger': ["ERROR:charm:Required Juju config item not set : image_path", 'ERROR:charm:Required Juju config item not set : external_hostname'],
+        'expected': 'Required Juju config item not set : external_hostname, image_path',
+    },
+    'missing_image_path': {
+        'config': {'external_hostname': 'example.com',},
         'logger': ["ERROR:charm:Required Juju config item not set : image_path"],
         'expected': 'Required Juju config item not set : image_path',
     },
+    'missing_external_hostname': {
+        'config': {'image_path': 'my_gunicorn_app:devel',},
+        'logger': ["ERROR:charm:Required Juju config item not set : external_hostname"],
+        'expected': 'Required Juju config item not set : external_hostname',
+    },
     'env_not_yaml': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': 'badyaml: :',},
-        'logger': ["ERROR:charm:Juju config item 'environment' is not YAML : mapping values are "
-                   'not allowed here\n'
-                   '  in "<unicode string>", line 1, column 10:\n'
-                   '    badyaml: :\n'
-                   '             ^'],
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'environment': 'badyaml: :',
+            'external_hostname': 'example.com',
+        },
+        'logger': [
+            "ERROR:charm:Juju config item 'environment' is not YAML : mapping values are "
+            'not allowed here\n'
+            '  in "<unicode string>", line 1, column 10:\n'
+            '    badyaml: :\n'
+            '             ^'
+        ],
         'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
     },
     'env_yaml_not_dict': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': 'not_a_dict',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'environment': 'not_a_dict',
+            'external_hostname': 'example.com',
+        },
         'logger': ["ERROR:charm:Juju config item 'environment' is not a YAML dict"],
         'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
     },
-    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',}, 'logger': [], 'expected': False,},
+    'good_config_no_env': {
+        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com'},
+        'logger': [],
+        'expected': False,
+    },
+    'good_config_with_env': {
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'environment': 'MYENV: foo',
+            'external_hostname': 'example.com',
+        },
+        'logger': [],
+        'expected': False,
+    },
 }
 
 TEST_CONFIGURE_POD = {
-    'bad_config': {'config': {'environment': ''}, 'expected': 'Required Juju config item not set : image_path',},
-    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',}, 'expected': False,},
+    'bad_config': {
+        'config': {'external_hostname': 'example.com',},
+        'expected': 'Required Juju config item not set : image_path',
+    },
+    'good_config_no_env': {
+        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
+        'expected': False,
+    },
+    'good_config_with_env': {
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': 'example.com',
+            'environment': 'MYENV: foo',
+        },
+        'expected': False,
+    },
 }
 
 TEST_MAKE_POD_SPEC = {
-    'basic': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',},
+    'basic_no_env': {
+        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
         'pod_spec': {
             'version': 3,  # otherwise resources are ignored
             'containers': [
@@ -70,12 +121,32 @@ TEST_MAKE_POD_SPEC = {
             ],
         },
     },
+    'basic_with_env': {
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': 'example.com',
+            'environment': 'MYENV: foo',
+        },
+        'pod_spec': {
+            'version': 3,  # otherwise resources are ignored
+            'containers': [
+                {
+                    'name': 'gunicorn',
+                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel',},
+                    'imagePullPolicy': 'Always',
+                    'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
+                    'envConfig': {'MYENV': 'foo'},
+                    'kubernetes': {'readinessProbe': {'httpGet': {'path': '/', 'port': 80}}},
+                }
+            ],
+        },
+    },
     'private_registry': {
         'config': {
             'image_path': 'my_gunicorn_app:devel',
             'image_username': 'foo',
             'image_password': 'bar',
-            'environment': '',
+            'external_hostname': 'example.com',
         },
         'pod_spec': {
             'version': 3,  # otherwise resources are ignored
@@ -96,7 +167,7 @@ TEST_MAKE_POD_SPEC = {
 
 TEST_MAKE_K8S_INGRESS = {
     'basic': {
-        'config': {'image_path': 'my_gunicorn_app:devel',},
+        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
         'expected': [
             {
                 'name': 'gunicorn-ingress',
