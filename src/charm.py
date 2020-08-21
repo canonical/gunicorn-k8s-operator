@@ -140,5 +140,5 @@ class GunicornK8sCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main(GunicornK8sCharm, use_juju_for_storage=True)
