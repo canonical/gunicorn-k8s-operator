@@ -16,3 +16,8 @@ options:
     description: |
       The password associated with image_username for accessing the registry specified in image_path.
     default: ''
+  environment:
+    type: string
+    description: |
+      This YAML-formatted associative array will be added to the environment of the container.
+    default: ''

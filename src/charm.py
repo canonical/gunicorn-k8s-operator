@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+import yaml
 
 import ops
 from ops.framework import StoredState
@@ -18,6 +19,7 @@ from ops.model import (
 logger = logging.getLogger(__name__)
 
 REQUIRED_JUJU_CONFIG = ['image_path']
+JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
 
 
 class GunicornK8sCharmJujuConfigError(Exception):
@@ -40,18 +42,45 @@ class GunicornK8sCharm(CharmBase):
         self._stored.set_default(things=[])
 
     def _check_juju_config(self) -> None:
-        """Check if all the required Juju config options are set
+        """Check if all the required Juju config options are set,
+        and if all the Juju config options are properly formatted
 
         :raises GunicornK8sCharmJujuConfigError: if a required config is not set
         """
+
+        # Verify required items
         errors = []
         for required in REQUIRED_JUJU_CONFIG:
             if required not in self.model.config or not self.model.config[required]:
-                logger.error("Required Juju config not set : %s", required)
+                logger.error("Required Juju config item not set : %s", required)
                 errors.append(required)
         if errors:
             raise GunicornK8sCharmJujuConfigError(
-                "Required Juju config not set : {0}".format(", ".join(sorted(errors)))
+                "Required Juju config item not set : {0}".format(", ".join(sorted(errors)))
+            )
+
+        # Verify YAML formatting
+        errors = []
+        for item in JUJU_CONFIG_YAML_DICT_ITEMS:
+            supposed_yaml = self.model.config[item]
+
+            parsed = None
+
+            try:
+                parsed = yaml.safe_load(supposed_yaml)
+            except yaml.scanner.ScannerError as e:
+                errors.append(item)
+                logger.error("Juju config item '%s' is not YAML : %s", item, str(e))
+
+            if parsed and not isinstance(parsed, dict):
+                errors.append(item)
+                logger.error("Juju config item '%s' is not a YAML dict", item)
+
+        if errors:
+            raise GunicornK8sCharmJujuConfigError(
+                "YAML parsing failed on the Juju config item(s) : {0} - check \"juju debug-log -l ERROR\"".format(
+                    ", ".join(sorted(errors))
+                )
             )
 
     def _make_k8s_ingress(self) -> list:
@@ -75,15 +104,15 @@ class GunicornK8sCharm(CharmBase):
 
         return [ingress]
 
-    def _make_pod_config(self) -> dict:
+    def _make_pod_env(self) -> dict:
         """Return an envConfig with some core configuration.
 
         :returns: A dictionary used for envConfig in podspec
         :rtype: dict
         """
-        pod_config = {}
+        env = yaml.safe_load(self.model.config['environment'])
 
-        return pod_config
+        return env or {}
 
     def _make_pod_spec(self) -> dict:
         """Return a pod spec with some core configuration."""
@@ -94,7 +123,7 @@ class GunicornK8sCharm(CharmBase):
         }
         if config.get('image_username', None):
             image_details.update({'username': config['image_username'], 'password': config['image_password']})
-        pod_config = self._make_pod_config()
+        pod_env = self._make_pod_env()
 
         return {
             'version': 3,  # otherwise resources are ignored
@@ -107,7 +136,7 @@ class GunicornK8sCharm(CharmBase):
                     # This implies a performance drop upon start.
                     'imagePullPolicy': 'Always',
                     'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
-                    'envConfig': pod_config,
+                    'envConfig': pod_env,
                     'kubernetes': {'readinessProbe': {'httpGet': {'path': '/', 'port': 80}},},
                 }
             ],

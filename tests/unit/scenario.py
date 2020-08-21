@@ -28,20 +28,34 @@ JUJU_CONFIG = get_juju_config()
 TEST_JUJU_CONFIG = {
     'missing_image_path': {
         'config': {},
-        'logger': ["ERROR:charm:Required Juju config not set : image_path"],
-        'expected': 'Required Juju config not set : image_path',
+        'logger': ["ERROR:charm:Required Juju config item not set : image_path"],
+        'expected': 'Required Juju config item not set : image_path',
     },
-    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel'}, 'logger': [], 'expected': False,},
+    'env_not_yaml': {
+        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': 'badyaml: :',},
+        'logger': ["ERROR:charm:Juju config item 'environment' is not YAML : mapping values are "
+                   'not allowed here\n'
+                   '  in "<unicode string>", line 1, column 10:\n'
+                   '    badyaml: :\n'
+                   '             ^'],
+        'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
+    },
+    'env_yaml_not_dict': {
+        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': 'not_a_dict',},
+        'logger': ["ERROR:charm:Juju config item 'environment' is not a YAML dict"],
+        'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
+    },
+    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',}, 'logger': [], 'expected': False,},
 }
 
 TEST_CONFIGURE_POD = {
-    'bad_config': {'config': {}, 'expected': 'Required Juju config not set : image_path',},
-    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel'}, 'expected': False,},
+    'bad_config': {'config': {'environment': ''}, 'expected': 'Required Juju config item not set : image_path',},
+    'good_config': {'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',}, 'expected': False,},
 }
 
 TEST_MAKE_POD_SPEC = {
     'basic': {
-        'config': {'image_path': 'my_gunicorn_app:devel',},
+        'config': {'image_path': 'my_gunicorn_app:devel', 'environment': '',},
         'pod_spec': {
             'version': 3,  # otherwise resources are ignored
             'containers': [
@@ -57,7 +71,12 @@ TEST_MAKE_POD_SPEC = {
         },
     },
     'private_registry': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'image_username': 'foo', 'image_password': 'bar',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'image_username': 'foo',
+            'image_password': 'bar',
+            'environment': '',
+        },
         'pod_spec': {
             'version': 3,  # otherwise resources are ignored
             'containers': [
