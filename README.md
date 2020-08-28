@@ -41,7 +41,7 @@ option. This config option is a Jinja2 template for a YAML dict that will be
 added to the environment of your pods.
 
 The context used to render the Jinja2 template is constructed from relation
-data. For example, if you're relation with postgresql, you could do the following :
+data. For example, if you're relating with influxdb, you could do the following :
 ```
 juju deploy cs:gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
 juju config my-awesome-app environment="INFLUXDB_HOST: {{influxdb.hostname}}"
