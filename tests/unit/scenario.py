@@ -29,6 +29,9 @@ def get_juju_default_config() -> dict:
 
 JUJU_DEFAULT_CONFIG = get_juju_default_config()
 
+TEST_PG_URI = 'postgresql://usr:pwd@1.2.3.4:5432/gunicorn'
+TEST_PG_CONNSTR = 'dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr'
+
 TEST_JUJU_CONFIG = {
     'defaults': {
         'config': {},

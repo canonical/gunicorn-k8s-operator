@@ -21,6 +21,8 @@ from scenario import (
     TEST_MAKE_POD_SPEC,
     TEST_MAKE_K8S_INGRESS,
     TEST_RENDER_TEMPLATE,
+    TEST_PG_URI,
+    TEST_PG_CONNSTR,
 )
 
 
@@ -38,7 +40,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.cleanup()
 
     def test_on_database_relation_joined(self):
-        """Test the _on_database_relation_joined function"""
+        """Test the _on_database_relation_joined function."""
 
         # Unit is leader
         mock_event = MagicMock()
@@ -68,7 +70,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, None)
 
     def test_on_master_changed(self):
-        """Test the _on_master_changed function"""
+        """Test the _on_master_changed function."""
 
         # No database
         mock_event = MagicMock()
@@ -91,8 +93,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # Database with master
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
-        mock_event.master.conn_str = "dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr"
-        mock_event.master.uri = "postgresql://usr:pwd@1.2.3.4:5432/gunicorn"
+        mock_event.master.conn_str = TEST_PG_CONNSTR
+        mock_event.master.uri = TEST_PG_URI
         with patch('charm.GunicornK8sCharm._configure_pod') as configure_pod:
             r = self.harness.charm._on_master_changed(mock_event)
 
@@ -103,7 +105,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             configure_pod.assert_called_with(mock_event)
 
     def test_on_standby_changed(self):
-        """Test the _on_standby_changed function"""
+        """Test the _on_standby_changed function."""
 
         # Database not ready
         mock_event = MagicMock()
@@ -116,13 +118,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
 
-        test_uri = "postgresql://usr:pwd@1.2.3.4:5432/gunicorn"
         mock_event.standbys = [MagicMock()]
-        mock_event.standbys[0].uri = test_uri
+        mock_event.standbys[0].uri = TEST_PG_URI
 
         r = self.harness.charm._on_standby_changed(mock_event)
+
         reldata = self.harness.charm._state.reldata
-        self.assertEqual(reldata['pg']['ro_uris'], [test_uri])
+        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
@@ -156,7 +158,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
     def test_render_template(self):
-        """Test template rendering"""
+        """Test template rendering."""
 
         for scenario, values in TEST_RENDER_TEMPLATE.items():
             with self.subTest(scenario=scenario):
@@ -164,15 +166,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 self.assertEqual(r, values['expected'])
 
     def test_get_context_from_relations(self):
-        """Test _get_context_from_relations()"""
+        """Test the _get_context_from_relations function."""
 
         self.harness.disable_hooks()  # no need for hooks to fire for this test
 
         # Set up PG "special case" relation data
-        test_conn_str = "dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr"
-        test_uri = "postgresql://usr:pwd@1.2.3.4:5432/gunicorn"
         reldata = self.harness.charm._state.reldata
-        reldata['pg'] = {'conn_str': test_conn_str, 'db_uri': test_uri}
+        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
 
         # Set up PG "raw" relation data
         relation_id = self.harness.add_relation('pg', 'postgresql')
@@ -188,7 +188,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         relation_id = self.harness.add_relation('myrel2', 'myapp2')
 
         expected_ret = {
-            'pg': {'conn_str': test_conn_str, 'db_uri': test_uri, 'version': '10'},
+            'pg': {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI, 'version': '10'},
             'myrel': {'thing': 'bli'},
         }
 
@@ -197,7 +197,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret)
 
     def test_validate_yaml(self):
-        """Test _validate_yaml()"""
+        """Test the _validate_yaml function."""
 
         # Proper YAML and type
         test_str = "a: b\n1: 2"
@@ -243,7 +243,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(str(exc.exception), expected_exception)
 
     def test_make_pod_env(self):
-        """Test _make_pod_env()"""
+        """Test the _make_pod_env function."""
 
         # No env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
@@ -267,10 +267,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
         expected_ret = {'a': 'b'}
 
         # Set up PG relation
-        test_conn_str = "dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr"
-        test_uri = "postgresql://usr:pwd@1.2.3.4:5432/gunicorn"
         reldata = self.harness.charm._state.reldata
-        reldata['pg'] = {'conn_str': test_conn_str, 'db_uri': test_uri}
+        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
 
         # Set up random relation
         self.harness.disable_hooks()  # no need for hooks to fire for this test
@@ -278,7 +276,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.add_relation_unit(relation_id, 'myapp/0')
         self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
 
-        expected_ret = {'DB': 'postgresql://usr:pwd@1.2.3.4:5432/gunicorn', 'THING': 'bli}'}
+        expected_ret = {'DB': TEST_PG_URI, 'THING': 'bli}'}
 
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret)
@@ -349,10 +347,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
             }
         )
 
-        test_conn_str = "dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr"
-        test_uri = "postgresql://usr:pwd@1.2.3.4:5432/gunicorn"
         reldata = self.harness.charm._state.reldata
-        reldata['pg'] = {'conn_str': test_conn_str, 'db_uri': test_uri}
+        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
         self.harness.set_leader(True)
         # Set up random relation
         self.harness.disable_hooks()  # no need for hooks to fire for this test
