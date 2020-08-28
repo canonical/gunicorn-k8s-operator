@@ -19,10 +19,17 @@ options:
   environment:
     type: string
     description: |
-      This YAML-formatted associative array will be added to the environment of the container.
+      Jinja2 template of a YAML-formatted associative array which will be added
+      to the environment of the container. The context used to render the template
+      is filled with relation data. For example, if you use :
+        DEBUG_LEVEL: 2
+        DB_URI: {{pg.uri}}
+      your pods will get the "DEBUG_LEVEL" environment variable set to 2, and
+      the "DB_URI" environment variable will be set to the "uri" relation data
+      item provided by the "pg" relation.
     default: ''
   external_hostname:
     type: string
     description: |
-      External hostname this gunicorn app should respond to
+      External hostname this gunicorn app should respond to.
     default: ''

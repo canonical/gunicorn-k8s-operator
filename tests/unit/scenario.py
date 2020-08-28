@@ -32,42 +32,21 @@ JUJU_DEFAULT_CONFIG = get_juju_default_config()
 TEST_JUJU_CONFIG = {
     'defaults': {
         'config': {},
-        'logger': ["ERROR:charm:Required Juju config item not set : image_path", 'ERROR:charm:Required Juju config item not set : external_hostname'],
-        'expected': 'Required Juju config item not set : external_hostname, image_path',
+        'logger': [
+            "ERROR:charm:Required Juju config item not set : image_path",
+            'ERROR:charm:Required Juju config item not set : external_hostname',
+        ],
+        'expected': 'Required Juju config item(s) not set : external_hostname, image_path',
     },
     'missing_image_path': {
         'config': {'external_hostname': 'example.com',},
         'logger': ["ERROR:charm:Required Juju config item not set : image_path"],
-        'expected': 'Required Juju config item not set : image_path',
+        'expected': 'Required Juju config item(s) not set : image_path',
     },
     'missing_external_hostname': {
         'config': {'image_path': 'my_gunicorn_app:devel',},
         'logger': ["ERROR:charm:Required Juju config item not set : external_hostname"],
-        'expected': 'Required Juju config item not set : external_hostname',
-    },
-    'env_not_yaml': {
-        'config': {
-            'image_path': 'my_gunicorn_app:devel',
-            'environment': 'badyaml: :',
-            'external_hostname': 'example.com',
-        },
-        'logger': [
-            "ERROR:charm:Juju config item 'environment' is not YAML : mapping values are "
-            'not allowed here\n'
-            '  in "<unicode string>", line 1, column 10:\n'
-            '    badyaml: :\n'
-            '             ^'
-        ],
-        'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
-    },
-    'env_yaml_not_dict': {
-        'config': {
-            'image_path': 'my_gunicorn_app:devel',
-            'environment': 'not_a_dict',
-            'external_hostname': 'example.com',
-        },
-        'logger': ["ERROR:charm:Juju config item 'environment' is not a YAML dict"],
-        'expected': 'YAML parsing failed on the Juju config item(s) : environment - check "juju debug-log -l ERROR"',
+        'expected': 'Required Juju config item(s) not set : external_hostname',
     },
     'good_config_no_env': {
         'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com'},
@@ -88,10 +67,12 @@ TEST_JUJU_CONFIG = {
 TEST_CONFIGURE_POD = {
     'bad_config': {
         'config': {'external_hostname': 'example.com',},
-        'expected': 'Required Juju config item not set : image_path',
+        '_leader_get': "5:\n  database: gunicorn\n  extensions: ''\n  roles: ''",
+        'expected': 'Required Juju config item(s) not set : image_path',
     },
     'good_config_no_env': {
         'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
+        '_leader_get': "5:\n  database: gunicorn\n  extensions: ''\n  roles: ''",
         'expected': False,
     },
     'good_config_with_env': {
@@ -100,6 +81,7 @@ TEST_CONFIGURE_POD = {
             'external_hostname': 'example.com',
             'environment': 'MYENV: foo',
         },
+        '_leader_get': "5:\n  database: gunicorn\n  extensions: ''\n  roles: ''",
         'expected': False,
     },
 }
@@ -186,3 +168,5 @@ TEST_MAKE_K8S_INGRESS = {
         ],
     },
 }
+
+TEST_RENDER_TEMPLATE = {'working': {'tmpl': "test {{db.x}}", 'ctx': {'db': {'x': 'foo'}}, 'expected': "test foo",}}
