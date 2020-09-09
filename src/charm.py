@@ -118,7 +118,6 @@ class GunicornK8sCharm(CharmBase):
         """Return an ingress that you can use in k8s_resources
 
         :returns: A list to be used as k8s ingress
-        :rtype: list
         """
 
         hostname = self.model.config['external_hostname']
@@ -130,12 +129,19 @@ class GunicornK8sCharm(CharmBase):
                     {
                         "host": hostname,
                         "http": {
-                            "paths": [{"path": "/", "backend": {"serviceName": self.app.name, "servicePort": 80},}]
+                            "paths": [
+                                {
+                                    "path": "/",
+                                    "backend": {"serviceName": self.app.name, "servicePort": 80},
+                                }
+                            ]
                         },
                     }
                 ]
             },
-            "annotations": {'nginx.ingress.kubernetes.io/ssl-redirect': 'false',},
+            "annotations": {
+                'nginx.ingress.kubernetes.io/ssl-redirect': 'false',
+            },
         }
 
         return [ingress]
@@ -144,7 +150,6 @@ class GunicornK8sCharm(CharmBase):
         """Render a Jinja2 template
 
         :returns: A rendered Jinja2 template
-        :rtype: str
         """
         j2env = Environment(loader=BaseLoader())
         j2template = j2env.from_string(tmpl)
@@ -156,7 +161,6 @@ class GunicornK8sCharm(CharmBase):
         template rendering
 
         :returns: A dict with relation data that can be used as context for Jinja2 template rendering
-        :rtype: dict
         """
         ctx = {}
 
@@ -208,7 +212,6 @@ class GunicornK8sCharm(CharmBase):
         """Return an envConfig with some core configuration.
 
         :returns: A dictionary used for envConfig in podspec
-        :rtype: dict
         """
         env = self.model.config['environment']
 
@@ -233,7 +236,6 @@ class GunicornK8sCharm(CharmBase):
         """Return a pod spec with some core configuration.
 
         :returns: A pod spec
-        :rtype: dict
         """
 
         config = self.model.config
@@ -256,7 +258,9 @@ class GunicornK8sCharm(CharmBase):
                     'imagePullPolicy': 'Always',
                     'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
                     'envConfig': pod_env,
-                    'kubernetes': {'readinessProbe': {'httpGet': {'path': '/', 'port': 80}},},
+                    'kubernetes': {
+                        'readinessProbe': {'httpGet': {'path': '/', 'port': 80}},
+                    },
                 }
             ],
         }
@@ -264,7 +268,7 @@ class GunicornK8sCharm(CharmBase):
     def _configure_pod(self, event: ops.framework.EventBase) -> None:
         """Assemble the pod spec and apply it, if possible.
 
-        :param ops.framework.EventBase event: Event that triggered the method.
+        :param event: Event that triggered the method.
         """
 
         env = self.model.config['environment']

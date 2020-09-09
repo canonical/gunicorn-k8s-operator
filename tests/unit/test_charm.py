@@ -364,7 +364,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # Test incorrect YAML
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config(
-            {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com', 'environment': 'a: :',}
+            {
+                'image_path': 'my_gunicorn_app:devel',
+                'external_hostname': 'example.com',
+                'environment': 'a: :',
+            }
         )
         self.harness.set_leader(True)
         expected_status = 'Could not parse Juju config \'environment\' as a YAML dict - check "juju debug-log -l ERROR"'

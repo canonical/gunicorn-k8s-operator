@@ -42,12 +42,16 @@ TEST_JUJU_CONFIG = {
         'expected': 'Required Juju config item(s) not set : external_hostname, image_path',
     },
     'missing_image_path': {
-        'config': {'external_hostname': 'example.com',},
+        'config': {
+            'external_hostname': 'example.com',
+        },
         'logger': ["ERROR:charm:Required Juju config item not set : image_path"],
         'expected': 'Required Juju config item(s) not set : image_path',
     },
     'missing_external_hostname': {
-        'config': {'image_path': 'my_gunicorn_app:devel',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+        },
         'logger': ["ERROR:charm:Required Juju config item not set : external_hostname"],
         'expected': 'Required Juju config item(s) not set : external_hostname',
     },
@@ -69,12 +73,17 @@ TEST_JUJU_CONFIG = {
 
 TEST_CONFIGURE_POD = {
     'bad_config': {
-        'config': {'external_hostname': 'example.com',},
+        'config': {
+            'external_hostname': 'example.com',
+        },
         '_leader_get': "5:\n  database: gunicorn\n  extensions: ''\n  roles: ''",
         'expected': 'Required Juju config item(s) not set : image_path',
     },
     'good_config_no_env': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': 'example.com',
+        },
         '_leader_get': "5:\n  database: gunicorn\n  extensions: ''\n  roles: ''",
         'expected': False,
     },
@@ -91,13 +100,18 @@ TEST_CONFIGURE_POD = {
 
 TEST_MAKE_POD_SPEC = {
     'basic_no_env': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': 'example.com',
+        },
         'pod_spec': {
             'version': 3,  # otherwise resources are ignored
             'containers': [
                 {
                     'name': 'gunicorn',
-                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel',},
+                    'imageDetails': {
+                        'imagePath': 'my_gunicorn_app:devel',
+                    },
                     'imagePullPolicy': 'Always',
                     'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
                     'envConfig': {},
@@ -117,7 +131,9 @@ TEST_MAKE_POD_SPEC = {
             'containers': [
                 {
                     'name': 'gunicorn',
-                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel',},
+                    'imageDetails': {
+                        'imagePath': 'my_gunicorn_app:devel',
+                    },
                     'imagePullPolicy': 'Always',
                     'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
                     'envConfig': {'MYENV': 'foo'},
@@ -138,7 +154,11 @@ TEST_MAKE_POD_SPEC = {
             'containers': [
                 {
                     'name': 'gunicorn',
-                    'imageDetails': {'imagePath': 'my_gunicorn_app:devel', 'username': 'foo', 'password': 'bar',},
+                    'imageDetails': {
+                        'imagePath': 'my_gunicorn_app:devel',
+                        'username': 'foo',
+                        'password': 'bar',
+                    },
                     'imagePullPolicy': 'Always',
                     'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
                     'envConfig': {},
@@ -152,7 +172,10 @@ TEST_MAKE_POD_SPEC = {
 
 TEST_MAKE_K8S_INGRESS = {
     'basic': {
-        'config': {'image_path': 'my_gunicorn_app:devel', 'external_hostname': 'example.com',},
+        'config': {
+            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': 'example.com',
+        },
         'expected': [
             {
                 'name': 'gunicorn-ingress',
@@ -161,15 +184,28 @@ TEST_MAKE_K8S_INGRESS = {
                         {
                             'host': 'example.com',
                             'http': {
-                                'paths': [{'path': '/', 'backend': {'serviceName': 'gunicorn', 'servicePort': 80},},],
+                                'paths': [
+                                    {
+                                        'path': '/',
+                                        'backend': {'serviceName': 'gunicorn', 'servicePort': 80},
+                                    },
+                                ],
                             },
                         },
                     ],
                 },
-                'annotations': {'nginx.ingress.kubernetes.io/ssl-redirect': 'false',},
+                'annotations': {
+                    'nginx.ingress.kubernetes.io/ssl-redirect': 'false',
+                },
             },
         ],
     },
 }
 
-TEST_RENDER_TEMPLATE = {'working': {'tmpl': "test {{db.x}}", 'ctx': {'db': {'x': 'foo'}}, 'expected': "test foo",}}
+TEST_RENDER_TEMPLATE = {
+    'working': {
+        'tmpl': "test {{db.x}}",
+        'ctx': {'db': {'x': 'foo'}},
+        'expected': "test foo",
+    }
+}
