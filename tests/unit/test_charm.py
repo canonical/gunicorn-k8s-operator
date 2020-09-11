@@ -85,7 +85,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.master = None
 
         r = self.harness.charm._on_master_changed(mock_event)
-        reldata = self.harness.charm._state.reldata
+        reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['conn_str'], None)
         self.assertEqual(reldata['pg']['db_uri'], None)
         self.assertEqual(r, None)
@@ -98,7 +98,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         with patch('charm.GunicornK8sCharm._configure_pod') as configure_pod:
             r = self.harness.charm._on_master_changed(mock_event)
 
-            reldata = self.harness.charm._state.reldata
+            reldata = self.harness.charm._stored.reldata
             self.assertEqual(reldata['pg']['conn_str'], mock_event.master.conn_str)
             self.assertEqual(reldata['pg']['db_uri'], mock_event.master.uri)
             self.assertEqual(r, None)
@@ -123,7 +123,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         r = self.harness.charm._on_standby_changed(mock_event)
 
-        reldata = self.harness.charm._state.reldata
+        reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
     def test_check_juju_config(self):
@@ -171,7 +171,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.disable_hooks()  # no need for hooks to fire for this test
 
         # Set up PG "special case" relation data
-        reldata = self.harness.charm._state.reldata
+        reldata = self.harness.charm._stored.reldata
         reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
 
         # Set up PG "raw" relation data
@@ -267,7 +267,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         expected_ret = {'a': 'b'}
 
         # Set up PG relation
-        reldata = self.harness.charm._state.reldata
+        reldata = self.harness.charm._stored.reldata
         reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
 
         # Set up random relation
@@ -347,7 +347,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             }
         )
 
-        reldata = self.harness.charm._state.reldata
+        reldata = self.harness.charm._stored.reldata
         reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
         self.harness.set_leader(True)
         # Set up random relation

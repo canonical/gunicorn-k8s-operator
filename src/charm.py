@@ -37,7 +37,7 @@ class GunicornK8sCharmYAMLError(Exception):
 
 
 class GunicornK8sCharm(CharmBase):
-    _state = StoredState()
+    _stored = StoredState()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -48,13 +48,13 @@ class GunicornK8sCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._configure_pod)
 
         # For special-cased relations
-        self._state.set_default(reldata={})
+        self._stored.set_default(reldata={})
 
         self._init_postgresql_relation()
 
     def _init_postgresql_relation(self) -> None:
         """Initialization related to the postgresql relation"""
-        self._state.reldata['pg'] = {}
+        self._stored.reldata['pg'] = {}
         self.pg = pgsql.PostgreSQLClient(self, 'pg')
         self.framework.observe(self.pg.on.database_relation_joined, self._on_database_relation_joined)
         self.framework.observe(self.pg.on.master_changed, self._on_master_changed)
@@ -77,8 +77,8 @@ class GunicornK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._state.reldata['pg']['conn_str'] = None if event.master is None else event.master.conn_str
-        self._state.reldata['pg']['db_uri'] = None if event.master is None else event.master.uri
+        self._stored.reldata['pg']['conn_str'] = None if event.master is None else event.master.conn_str
+        self._stored.reldata['pg']['db_uri'] = None if event.master is None else event.master.uri
 
         if event.master is None:
             return
@@ -92,7 +92,7 @@ class GunicornK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._state.reldata['pg']['ro_uris'] = [c.uri for c in event.standbys]
+        self._stored.reldata['pg']['ro_uris'] = [c.uri for c in event.standbys]
 
         # TODO: Emit event when we add support for read replicas
 
@@ -165,9 +165,9 @@ class GunicornK8sCharm(CharmBase):
         ctx = {}
 
         # Add variables from "special" relations
-        for rel in self._state.reldata:
-            if self._state.reldata[rel]:
-                ctx[str(rel)] = self._state.reldata[rel]
+        for rel in self._stored.reldata:
+            if self._stored.reldata[rel]:
+                ctx[str(rel)] = self._stored.reldata[rel]
 
         logger.error("ctx %s", ctx)
         # Add variables from raw relation data
