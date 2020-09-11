@@ -66,7 +66,7 @@ class GunicornK8sCharm(CharmBase):
             # Provide requirements to the PostgreSQL server.
             event.database = self.app.name  # Request database named like the Juju app
         elif event.database != self.app.name:
-            # Leader has not yet set requirements. Defer, incase this unit
+            # Leader has not yet set requirements. Defer, in case this unit
             # becomes leader and needs to perform that operation.
             event.defer()
 
@@ -111,7 +111,7 @@ class GunicornK8sCharm(CharmBase):
                 errors.append(required)
         if errors:
             raise GunicornK8sCharmJujuConfigError(
-                "Required Juju config item(s) not set : {0}".format(", ".join(sorted(errors)))
+                "Required Juju config item(s) not set : {}".format(", ".join(sorted(errors)))
             )
 
     def _make_k8s_ingress(self) -> list:
@@ -169,7 +169,6 @@ class GunicornK8sCharm(CharmBase):
             if self._stored.reldata[rel]:
                 ctx[str(rel)] = self._stored.reldata[rel]
 
-        logger.error("ctx %s", ctx)
         # Add variables from raw relation data
         for rel in self.model.relations:
             r = self.model.relations[rel]  # TODO handle multiple relations ?
@@ -180,7 +179,6 @@ class GunicornK8sCharm(CharmBase):
                     if r.name not in ctx:  # can be present from the "special" relations above
                         ctx[r.name] = {}
                     for k, v in r.data[u].items():
-                        logger.error("%s %s %s %s", r.name, k, v, ctx[r.name])
                         ctx[r.name][k] = v
 
         return ctx
@@ -198,12 +196,15 @@ class GunicornK8sCharm(CharmBase):
         except yaml.scanner.ScannerError as e:
             logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, str(e))
             err = True
-
-        if parsed and not isinstance(parsed, expected_type):
-            err = True
-            logger.error(
-                "Expected type '%s' but got '%s' when parsing YAML : %s", expected_type, parsed.__class__, supposed_yaml
-            )
+        else:
+            if not isinstance(parsed, expected_type):
+                err = True
+                logger.error(
+                    "Expected type '%s' but got '%s' when parsing YAML : %s",
+                    expected_type,
+                    parsed.__class__,
+                    supposed_yaml,
+                )
 
         if err:
             raise GunicornK8sCharmYAMLError("YAML parsing failed, please check \"juju debug-log -l ERROR\"")
@@ -280,7 +281,7 @@ class GunicornK8sCharm(CharmBase):
             missing_vars = set()
 
             for req_var in meta.find_undeclared_variables(j2template):
-                if req_var not in ctx or not ctx[req_var]:
+                if not ctx.get(req_var):
                     missing_vars.add(req_var)
 
             if missing_vars:
