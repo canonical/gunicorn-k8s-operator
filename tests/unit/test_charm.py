@@ -179,10 +179,17 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.add_relation_unit(relation_id, 'postgresql/0')
         self.harness.update_relation_data(relation_id, 'postgresql/0', {'version': '10'})
 
-        # Set up random relation, with a unit
+        # Set up random relation, with 2 units
         relation_id = self.harness.add_relation('myrel', 'myapp')
         self.harness.add_relation_unit(relation_id, 'myapp/0')
+        self.harness.add_relation_unit(relation_id, 'myapp/1')
         self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
+        self.harness.update_relation_data(relation_id, 'myapp/1', {'thing': 'blo'})
+
+        # Set up same relation but with a different app
+        relation_id = self.harness.add_relation('myrel', 'myapp2')
+        self.harness.add_relation_unit(relation_id, 'myapp2/0')
+        self.harness.update_relation_data(relation_id, 'myapp2/0', {'thing': 'blu'})
 
         # Set up random relation, no unit (can happen during relation init)
         relation_id = self.harness.add_relation('myrel2', 'myapp2')
@@ -191,9 +198,17 @@ class TestGunicornK8sCharm(unittest.TestCase):
             'pg': {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI, 'version': '10'},
             'myrel': {'thing': 'bli'},
         }
+        expected_logger = [
+            'WARNING:charm:Multiple relations of type "myrel" detected, '
+            'using only the first one (id: 1) for relation data.',
+            'WARNING:charm:Multiple units detected in the relation "myrel:1", '
+            'using only the first one (id: myapp/0) for relation data.',
+        ]
 
-        r = self.harness.charm._get_context_from_relations()
+        with self.assertLogs(level="WARNING") as logger:
+            r = self.harness.charm._get_context_from_relations()
 
+        self.assertEqual(sorted(logger.output), sorted(expected_logger))
         self.assertEqual(r, expected_ret)
 
     def test_validate_yaml(self):

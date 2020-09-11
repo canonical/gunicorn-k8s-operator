@@ -170,16 +170,35 @@ class GunicornK8sCharm(CharmBase):
                 ctx[str(rel)] = self._stored.reldata[rel]
 
         # Add variables from raw relation data
-        for rel in self.model.relations:
-            r = self.model.relations[rel]  # TODO handle multiple relations ?
-            if len(r) > 0:
-                r = r[0]
-                if len(r.units) > 0:
-                    u = next(iter(r.units))
-                    if r.name not in ctx:  # can be present from the "special" relations above
-                        ctx[r.name] = {}
-                    for k, v in r.data[u].items():
-                        ctx[r.name][k] = v
+        for rels in self.model.relations.values():
+            if len(rels) > 0:
+                rel = rels[0]
+
+                if len(rels) > 1:
+                    logger.warning(
+                        'Multiple relations of type "%s" detected,'
+                        ' using only the first one (id: %s) for relation data.',
+                        rel.name,
+                        rel.id,
+                    )
+
+                if len(rel.units) > 0:
+                    # We want to always pick the same unit, so sort the set
+                    # before picking the first one.
+                    u = sorted(rel.units, key=lambda x: x.name)[0]
+
+                    if len(rel.units) > 1:
+                        logger.warning(
+                            'Multiple units detected in the relation "%s:%s", '
+                            'using only the first one (id: %s) for relation data.',
+                            rel.name,
+                            rel.id,
+                            u.name,
+                        )
+                    if rel.name not in ctx:  # can be present from the "special" relations above
+                        ctx[rel.name] = {}
+                    for k, v in rel.data[u].items():
+                        ctx[rel.name][k] = v
 
         return ctx
 
