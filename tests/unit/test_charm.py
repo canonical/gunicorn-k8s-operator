@@ -345,7 +345,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             }
         )
         self.harness.set_leader(True)
-        expected_status = 'Waiting for pg relation'
+        expected_status = 'Waiting for pg relation(s)'
 
         self.harness.charm._configure_pod(mock_event)
 
@@ -370,7 +370,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         relation_id = self.harness.add_relation('myrel', 'myapp')
         self.harness.add_relation_unit(relation_id, 'myapp/0')
         self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
-        expected_status = 'Waiting for pg relation'
+        expected_status = 'Waiting for pg relation(s)'
 
         self.harness.charm._configure_pod(mock_event)
 

@@ -213,7 +213,7 @@ class GunicornK8sCharm(CharmBase):
         try:
             parsed = yaml.safe_load(supposed_yaml)
         except yaml.scanner.ScannerError as e:
-            logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, str(e))
+            logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, e)
             err = True
         else:
             if not isinstance(parsed, expected_type):
@@ -226,7 +226,7 @@ class GunicornK8sCharm(CharmBase):
                 )
 
         if err:
-            raise GunicornK8sCharmYAMLError("YAML parsing failed, please check \"juju debug-log -l ERROR\"")
+            raise GunicornK8sCharmYAMLError('YAML parsing failed, please check "juju debug-log -l ERROR"')
 
     def _make_pod_env(self) -> dict:
         """Return an envConfig with some core configuration.
@@ -309,7 +309,7 @@ class GunicornK8sCharm(CharmBase):
                     "setting status to 'waiting' : %s",
                     ", ".join(sorted(missing_vars)),
                 )
-                self.unit.status = BlockedStatus('Waiting for {} relation'.format(", ".join(sorted(missing_vars))))
+                self.unit.status = BlockedStatus('Waiting for {} relation(s)'.format(", ".join(sorted(missing_vars))))
                 event.defer()
                 return
 
