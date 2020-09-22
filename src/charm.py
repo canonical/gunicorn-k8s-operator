@@ -54,7 +54,8 @@ class GunicornK8sCharm(CharmBase):
 
     def _init_postgresql_relation(self) -> None:
         """Initialization related to the postgresql relation"""
-        self._stored.reldata['pg'] = {}
+        if 'pg' not in self._stored.reldata:
+            self._stored.reldata['pg'] = {}
         self.pg = pgsql.PostgreSQLClient(self, 'pg')
         self.framework.observe(self.pg.on.database_relation_joined, self._on_database_relation_joined)
         self.framework.observe(self.pg.on.master_changed, self._on_master_changed)

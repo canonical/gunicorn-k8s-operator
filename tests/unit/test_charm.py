@@ -39,6 +39,23 @@ class TestGunicornK8sCharm(unittest.TestCase):
         """Cleanup the harness."""
         self.harness.cleanup()
 
+    def test_init_postgresql_relation(self):
+        """Test the _init_postgresql_relation function."""
+
+        # We'll only test the case where _stored already
+        # has content. _stored being empty is basically tested
+        # by all the other functions
+
+        mock_stored = MagicMock()
+        mock_stored.reldata = {'pg': 'foo'}
+        mock_framework = MagicMock()
+        mock_pgsql = MagicMock()
+
+        with patch('test_charm.GunicornK8sCharm._stored', mock_stored):
+            with patch('pgsql.PostgreSQLClient', mock_pgsql):
+                c = GunicornK8sCharm(mock_framework)
+                self.assertEqual(c._stored, mock_stored)
+
     def test_on_database_relation_joined(self):
         """Test the _on_database_relation_joined function."""
 
