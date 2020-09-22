@@ -1,23 +1,24 @@
-blacken:		
+gunicorn.charm: src/*.py requirements.txt metadata.yaml config.yaml test
+	charmcraft build
+
+blacken:
 	@echo "Normalising python layout with black."
 	@tox -e black
-										
-lint: blacken	
+
+lint: blacken
 	@echo "Running flake8"
-	@tox -e lint	
+	@tox -e lint
 
 # We actually use the build directory created by charmcraft,
 # but the .charm file makes a much more convenient sentinel.
-unittest: gunicorn.charm							
+unittest:
 	@tox -e unit
 
 test: lint unittest
-					
-clean:	
+
+clean:
 	@echo "Cleaning files"
-	@git clean -fXd							
-										
-gunicorn.charm: src/*.py requirements.txt
-	charmcraft build
-					
-.PHONY: lint test unittest clean
+	@git clean -fXd
+
+
+.PHONY: lint test unittest blacken clean

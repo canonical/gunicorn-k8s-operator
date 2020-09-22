@@ -1,18 +1,35 @@
 options:
   image_path:
     type: string
-    description: |
+    description: >
       The location of the image to use, e.g. "registry.example.com/my_gunicorn_app:v1".
 
       This setting is required.
     default: ''
   image_username:
     type: string
-    description: |
+    description: >
       The username for accessing the registry specified in image_path.
     default: ''
   image_password:
     type: string
-    description: |
+    description: >
       The password associated with image_username for accessing the registry specified in image_path.
+    default: ''
+  environment:
+    type: string
+    description: >
+      Jinja2 template of a YAML-formatted associative array which will be added
+      to the environment of the container. The context used to render the template
+      is filled with relation data. For example, if you use :
+        DEBUG_LEVEL: 2
+        DB_URI: {{pg.uri}}
+      your pods will get the "DEBUG_LEVEL" environment variable set to 2, and
+      the "DB_URI" environment variable will be set to the "uri" relation data
+      item provided by the "pg" relation.
+    default: ''
+  external_hostname:
+    type: string
+    description: >
+      External hostname this gunicorn app should respond to.
     default: ''
