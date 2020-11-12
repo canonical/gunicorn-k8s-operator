@@ -7,7 +7,7 @@ A charm that allows you to deploy your gunicorn application in kubernetes.
 ## Usage
 
 ```
-juju deploy cs:gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
+juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
 ```
 
 ### Scale Out Usage
@@ -43,7 +43,7 @@ added to the environment of your pods.
 The context used to render the Jinja2 template is constructed from relation
 data. For example, if you're relating with influxdb, you could do the following :
 ```
-juju deploy cs:gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
+juju deploy cs:~gunciorn-charmers/gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
 juju config my-awesome-app environment="INFLUXDB_HOST: {{influxdb.hostname}}"
 ```
 
@@ -60,7 +60,7 @@ Some relations, such as the `postgresql` relation, are a bit more complex, in
 that they're managed by a library. Instead of using raw relation data, you use
 the library to get useful and usable information out of the relation. If you
 want to use such a relation, you will need to add a bit more code to make the
-information provided by the library availeble to the Jinja2 context. An example
+information provided by the library available to the Jinja2 context. An example
 is provided in the charm with the `postgresql` relation implementation.
 
 ## Building the charm
