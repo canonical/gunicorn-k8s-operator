@@ -12,7 +12,9 @@ juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app --config image_path=lo
 
 ### Scale Out Usage
 
+```
 juju add-unit my-awesome-app
+```
 
 ## OCI image
 
