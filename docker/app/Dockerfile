@@ -1,7 +1,5 @@
 FROM gunicornchamers/gunicorn-base:20.0.4-20.04_edge
 
-ENV DEBIAN_FRONTEND noninteractive
-
 RUN apt-get update \
 &&  apt-get install -y --no-install-recommends python3-psycopg2 \
 &&  apt-get clean \
