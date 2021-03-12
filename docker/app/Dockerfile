@@ -1,9 +1,9 @@
-FROM ubuntu:latest
+FROM gunicornchamers/gunicorn-base:20.0.4-20.04_edge
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update \
-&&  apt-get install -y --no-install-recommends gunicorn python3-psycopg2 \
+&&  apt-get install -y --no-install-recommends python3-psycopg2 \
 &&  apt-get clean \
 &&  rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
@@ -12,9 +12,3 @@ ENV APP_NAME my-awesome-app
 
 WORKDIR /srv/gunicorn/
 COPY app .
-COPY run .
-RUN chmod +x run
-
-EXPOSE 80
-
-CMD /srv/gunicorn/run

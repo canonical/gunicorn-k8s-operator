@@ -26,8 +26,8 @@ port 80.
 ### Using gunicorn-base to build an image
 
 If you have a gunicorn app that's not available via a Docker image, you can use
-the provided `gunicorn-base` image. First, build the base image that's
-available in the `docker/gunicorn-base` directory. You can then use it as a
+the provided `gunicorn-base` image, which is published to dockerhub as
+`gunicorncharmers/gunicorn-base:20.0.4-20.04_edge`. You can use this as a
 base for other images, and there's an example of that in the `docker/app`
 directory.
 
