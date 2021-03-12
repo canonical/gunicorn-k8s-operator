@@ -1,4 +1,4 @@
-FROM gunicornchamers/gunicorn-base:20.0.4-20.04_edge
+FROM gunicorncharmers/gunicorn-base:20.0.4-20.04_edge
 
 RUN apt-get update \
 &&  apt-get install -y --no-install-recommends python3-psycopg2 \
