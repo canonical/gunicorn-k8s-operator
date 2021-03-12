@@ -322,7 +322,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         self.assertEqual(str(exc.exception), expected_exception)
 
-    @patch('pgsql.pgsql._leader_get')
+    @patch('pgsql.client._leader_get')
     def test_configure_pod(self, mock_leader_get):
         """Test the pod configuration."""
 
