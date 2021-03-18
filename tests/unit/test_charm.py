@@ -34,6 +34,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         """Setup the harness object."""
         self.harness = testing.Harness(GunicornK8sCharm)
         self.harness.begin()
+        self.harness.add_oci_resource('gunicorn-image')
 
     def tearDown(self):
         """Cleanup the harness."""
