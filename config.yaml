@@ -14,5 +14,5 @@ options:
   external_hostname:
     type: string
     description: >
-      External hostname this gunicorn app should respond to.
-    default: ''
+      External hostname this gunicorn app should respond to (required).
+    default: 'foo.internal'

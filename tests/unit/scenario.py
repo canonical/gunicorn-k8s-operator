@@ -35,14 +35,12 @@ TEST_PG_CONNSTR = 'dbname=gunicorn host=1.2.3.4 password=pwd port=5432 user=usr'
 TEST_JUJU_CONFIG = {
     'defaults': {
         'config': {},
-        'logger': [
-            'ERROR:charm:Required Juju config item not set : external_hostname',
-        ],
-        'expected': 'Required Juju config item(s) not set : external_hostname',
+        'logger': [],
+        'expected': False,
     },
     'missing_external_hostname': {
         'config': {
-            'image_path': 'my_gunicorn_app:devel',
+            'external_hostname': '',
         },
         'logger': ["ERROR:charm:Required Juju config item not set : external_hostname"],
         'expected': 'Required Juju config item(s) not set : external_hostname',
