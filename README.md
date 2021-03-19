@@ -6,8 +6,12 @@ A charm that allows you to deploy your gunicorn application in kubernetes.
 
 ## Usage
 
+By default, the charm will deploy a simple docker image that contains a
+gunicorn app that displays a short message and its environment variables. The
+image is built using an OCI Recipe on Launchpad and published to dockerhub
+[here](https://hub.docker.com/r/gunicorncharmers/gunicorn-app).
 ```
-juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
+juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app
 ```
 
 ### Scale Out Usage
@@ -21,7 +25,9 @@ juju add-unit my-awesome-app
 ### Using your own image
 
 You can, of course, supply our own OCI image. gunicorn is expected to listen on
-port 80.
+port 80. To do so, specify `--resource gunicorn-image='image-location'` at
+deploy time, or use `juju attach-resource` if you want to switch images after
+initial deployment.
 
 ### Using gunicorn-base to build an image
 
@@ -45,7 +51,7 @@ added to the environment of your pods.
 The context used to render the Jinja2 template is constructed from relation
 data. For example, if you're relating with influxdb, you could do the following :
 ```
-juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app --config image_path=localhost:32000/myapp --config external_hostname=my-awesome-app.com
+juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app
 juju config my-awesome-app environment="INFLUXDB_HOST: {{influxdb.hostname}}"
 ```
 
