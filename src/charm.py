@@ -7,6 +7,7 @@ import logging
 import yaml
 
 import ops
+from oci_image import OCIImageResource, OCIImageResourceError
 from ops.framework import StoredState
 from ops.charm import CharmBase
 from ops.main import main
@@ -20,7 +21,7 @@ import pgsql
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_JUJU_CONFIG = ['image_path', 'external_hostname']
+REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
 
 
@@ -41,6 +42,8 @@ class GunicornK8sCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
+
+        self.image = OCIImageResource(self, 'gunicorn-image')
 
         self.framework.observe(self.on.start, self._configure_pod)
         self.framework.observe(self.on.config_changed, self._configure_pod)
@@ -259,12 +262,14 @@ class GunicornK8sCharm(CharmBase):
         :returns: A pod spec
         """
 
-        config = self.model.config
-        image_details = {
-            'imagePath': config['image_path'],
-        }
-        if config.get('image_username', None):
-            image_details.update({'username': config['image_username'], 'password': config['image_password']})
+        try:
+            image_details = self.image.fetch()
+            logging.info("using imageDetails: {}")
+        except OCIImageResourceError:
+            logging.exception('An error occurred while fetching the image info')
+            self.unit.status = BlockedStatus('Error fetching image information')
+            return {}
+
         pod_env = self._make_pod_env()
 
         return {

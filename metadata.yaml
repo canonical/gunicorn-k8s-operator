@@ -7,6 +7,12 @@ summary: |
   Gunicorn charm
 series: [kubernetes]
 min-juju-version: 2.8.0  # charm storage in state
+resources:
+  gunicorn-image:
+    type: oci-image
+    description: docker image for Gunicorn
+    auto-fetch: true
+    upstream-source: 'gunicorncharmers/gunicorn-app:20.0.4-20.04_edge'
 requires:
   pg:
     interface: pgsql
