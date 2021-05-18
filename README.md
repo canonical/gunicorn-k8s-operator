@@ -11,7 +11,7 @@ gunicorn app that displays a short message and its environment variables. The
 image is built using an OCI Recipe on Launchpad and published to dockerhub
 [here](https://hub.docker.com/r/gunicorncharmers/gunicorn-app).
 ```
-juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app
+juju deploy gunicorn-k8s my-awesome-app
 ```
 
 ### Scale Out Usage
@@ -51,7 +51,7 @@ added to the environment of your pods.
 The context used to render the Jinja2 template is constructed from relation
 data. For example, if you're relating with influxdb, you could do the following :
 ```
-juju deploy cs:~gunicorn-charmers/gunicorn my-awesome-app
+juju deploy gunicorn-k8s my-awesome-app
 juju config my-awesome-app environment="INFLUXDB_HOST: {{influxdb.hostname}}"
 ```
 

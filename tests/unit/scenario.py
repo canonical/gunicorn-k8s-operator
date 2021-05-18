@@ -87,7 +87,7 @@ TEST_MAKE_POD_SPEC = {
             'version': 3,  # otherwise resources are ignored
             'containers': [
                 {
-                    'name': 'gunicorn',
+                    'name': 'gunicorn-k8s',
                     'imageDetails': {
                         'imagePath': 'registrypath',
                         'password': 'password',
@@ -110,7 +110,7 @@ TEST_MAKE_POD_SPEC = {
             'version': 3,  # otherwise resources are ignored
             'containers': [
                 {
-                    'name': 'gunicorn',
+                    'name': 'gunicorn-k8s',
                     'imageDetails': {
                         'imagePath': 'registrypath',
                         'password': 'password',
@@ -134,7 +134,7 @@ TEST_MAKE_K8S_INGRESS = {
         },
         'expected': [
             {
-                'name': 'gunicorn-ingress',
+                'name': 'gunicorn-k8s-ingress',
                 'spec': {
                     'rules': [
                         {
@@ -143,7 +143,7 @@ TEST_MAKE_K8S_INGRESS = {
                                 'paths': [
                                     {
                                         'path': '/',
-                                        'backend': {'serviceName': 'gunicorn', 'servicePort': 80},
+                                        'backend': {'serviceName': 'gunicorn-k8s', 'servicePort': 80},
                                     },
                                 ],
                             },
