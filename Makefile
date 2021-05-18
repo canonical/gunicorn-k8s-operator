@@ -1,4 +1,4 @@
-gunicorn.charm: src/*.py requirements.txt metadata.yaml config.yaml test
+gunicorn-k8s.charm: src/*.py requirements.txt metadata.yaml config.yaml test
 	charmcraft build
 
 blacken:
