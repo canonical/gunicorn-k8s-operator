@@ -2,6 +2,7 @@
 # See LICENSE file for licensing details.
 name: gunicorn-k8s
 display-name: Gunicorn
+docs: https://discourse.charmhub.io/t/gunicorn-docs-index/4606
 description: |
   A charm for deploying and managing Gunicorn workloads
 summary: |
