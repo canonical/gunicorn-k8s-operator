@@ -6,10 +6,10 @@ A charm that allows you to deploy your gunicorn application in kubernetes.
 
 ## Usage
 
-By default, the charm will deploy a simple docker image that contains a
-gunicorn app that displays a short message and its environment variables. The
-image is built using an OCI Recipe on Launchpad and published to dockerhub
-[here](https://hub.docker.com/r/gunicorncharmers/gunicorn-app).
+By default, the charm will deploy a simple [OCI](https://opencontainers.org/)
+image that contains a gunicorn app that displays a short message and its
+environment variables. The image is built using an OCI Recipe on Launchpad and
+published to dockerhub [here](https://hub.docker.com/r/gunicorncharmers/gunicorn-app).
 ```
 juju deploy gunicorn-k8s my-awesome-app
 ```
