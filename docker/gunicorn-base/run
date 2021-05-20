@@ -12,4 +12,7 @@ exec gunicorn $APP_WSGI \
   --graceful-timeout=${GRACEFUL_TIMEOUT:-30} \
   --keep-alive=${KEEPALIVE:-2} \
   --pythonpath=/srv/gunicorn/ \
-  --proxy-allow-from='*'
+  --proxy-allow-from='*' \
+  --log-file=${LOGFILE:--} \
+  --access-logfile=${ACCESS_LOGFILE:--} \
+  --access-logformat="${ACCESS_LOGFORMAT:-%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s}"
