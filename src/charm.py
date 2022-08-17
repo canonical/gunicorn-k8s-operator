@@ -6,8 +6,8 @@ from jinja2 import Environment, BaseLoader, meta
 import logging
 import yaml
 
+from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
-from oci_image import OCIImageResource, OCIImageResourceError
 from ops.framework import StoredState
 from ops.charm import CharmBase
 from ops.main import main
@@ -16,6 +16,7 @@ from ops.model import (
     BlockedStatus,
     MaintenanceStatus,
 )
+from ops.pebble import ServiceStatus
 import pgsql
 
 
@@ -23,18 +24,19 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
+CONTAINER_NAME = 'gunicorn'
 
 
 class GunicornK8sCharmJujuConfigError(Exception):
     """Exception when the Juju config is bad."""
 
-    pass
-
 
 class GunicornK8sCharmYAMLError(Exception):
     """Exception raised when parsing YAML fails"""
 
-    pass
+
+class GunicornK8sWaitingForRelationsError(Exception):
+    """Exception when waiting for relations."""
 
 
 class GunicornK8sCharm(CharmBase):
@@ -43,17 +45,107 @@ class GunicornK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.image = OCIImageResource(self, 'gunicorn-image')
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
 
-        self.framework.observe(self.on.start, self._configure_pod)
-        self.framework.observe(self.on.config_changed, self._configure_pod)
-        self.framework.observe(self.on.leader_elected, self._configure_pod)
-        self.framework.observe(self.on.upgrade_charm, self._configure_pod)
+        self.ingress = IngressRequires(
+            self,
+            {
+                "service-hostname": self.config["external_hostname"],
+                "service-name": self.app.name,
+                "service-port": 80,
+            },
+        )
 
-        # For special-cased relations
-        self._stored.set_default(reldata={})
+        self._stored.set_default(
+            reldata={},
+        )
 
         self._init_postgresql_relation()
+
+    def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
+        """Generate pebble config."""
+        pebble_config = {
+            "summary": "gunicorn layer",
+            "description": "gunicorn layer",
+            "services": {
+                "gunicorn": {
+                    "override": "replace",
+                    "summary": "gunicorn service",
+                    "command": "/srv/gunicorn/run",
+                    "startup": "enabled",
+                }
+            },
+            "checks": {
+                "gunicorn-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": "http://0.0.0.0:80"},
+                },
+            },
+        }
+
+        # Update pod environment config.
+        try:
+            pod_env_config = self._make_pod_env()
+        except GunicornK8sCharmJujuConfigError as e:
+            logger.exception("Error getting pod_env_config: %s", e)
+            self.unit.status = BlockedStatus('Error getting pod_env_config')
+            return {}
+        except GunicornK8sWaitingForRelationsError as e:
+            self.unit.status = BlockedStatus(str(e))
+            event.defer()
+            return {}
+
+        try:
+            self._check_juju_config()
+        except GunicornK8sCharmJujuConfigError as e:
+            self.unit.status = BlockedStatus(str(e))
+            return {}
+
+        if pod_env_config:
+            pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
+        return pebble_config
+
+    def _on_config_changed(self, event: ops.framework.EventBase) -> None:
+        """Handle the config changed event."""
+
+        self._configure_workload(event)
+
+    def _on_gunicorn_pebble_ready(self, event: ops.framework.EventBase) -> None:
+        """Handle the workload ready event."""
+
+        self._configure_workload(event)
+
+    def _configure_workload(self, event: ops.charm.EventBase) -> None:
+        """Configure the workload container."""
+        pebble_config = self._get_pebble_config(event)
+        if not pebble_config:
+            # Charm will be in blocked status.
+            return
+
+        # Ensure the ingress relation has the external hostname.
+        self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
+
+        container = self.unit.get_container(CONTAINER_NAME)
+        # pebble may not be ready, in which case we just return
+        try:
+            services = container.get_plan().to_dict().get("services", {})
+        except ops.pebble.ConnectionError:
+            self.unit.status = MaintenanceStatus('waiting for pebble to start')
+            logger.debug('waiting for pebble to start')
+            return
+
+        if services != pebble_config["services"]:
+            logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
+            container.add_layer(CONTAINER_NAME, pebble_config, combine=True)
+
+            status = container.get_service("gunicorn")
+            if status.current == ServiceStatus.ACTIVE:
+                container.stop(CONTAINER_NAME)
+            container.start(CONTAINER_NAME)
+
+        self.unit.status = ActiveStatus()
 
     def _init_postgresql_relation(self) -> None:
         """Initialization related to the postgresql relation"""
@@ -87,7 +179,7 @@ class GunicornK8sCharm(CharmBase):
         if event.master is None:
             return
 
-        self._configure_pod(event)
+        self._on_config_changed(event)
 
     def _on_standby_changed(self, event: pgsql.StandbyChangedEvent) -> None:
         """Handle changes in the secondary database unit(s)."""
@@ -117,38 +209,6 @@ class GunicornK8sCharm(CharmBase):
             raise GunicornK8sCharmJujuConfigError(
                 "Required Juju config item(s) not set : {}".format(", ".join(sorted(errors)))
             )
-
-    def _make_k8s_ingress(self) -> list:
-        """Return an ingress that you can use in k8s_resources
-
-        :returns: A list to be used as k8s ingress
-        """
-
-        hostname = self.model.config['external_hostname']
-
-        ingress = {
-            "name": "{}-ingress".format(self.app.name),
-            "spec": {
-                "rules": [
-                    {
-                        "host": hostname,
-                        "http": {
-                            "paths": [
-                                {
-                                    "path": "/",
-                                    "backend": {"serviceName": self.app.name, "servicePort": 80},
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-            "annotations": {
-                'nginx.ingress.kubernetes.io/ssl-redirect': 'false',
-            },
-        }
-
-        return [ingress]
 
     def _render_template(self, tmpl: str, ctx: dict) -> str:
         """Render a Jinja2 template
@@ -243,6 +303,20 @@ class GunicornK8sCharm(CharmBase):
             return {}
 
         ctx = self._get_context_from_relations()
+
+        j2env = Environment(loader=BaseLoader)
+        j2template = j2env.parse(env)
+        missing_vars = set()
+
+        for req_var in meta.find_undeclared_variables(j2template):
+            if not ctx.get(req_var):
+                missing_vars.add(req_var)
+
+        if missing_vars:
+            raise GunicornK8sWaitingForRelationsError(
+                'Waiting for {} relation(s)'.format(", ".join(sorted(missing_vars)))
+            )
+
         rendered_env = self._render_template(env, ctx)
 
         try:
@@ -255,95 +329,6 @@ class GunicornK8sCharm(CharmBase):
         env = yaml.safe_load(rendered_env)
 
         return env
-
-    def _make_pod_spec(self) -> dict:
-        """Return a pod spec with some core configuration.
-
-        :returns: A pod spec
-        """
-
-        try:
-            image_details = self.image.fetch()
-            logging.info("using imageDetails: {}")
-        except OCIImageResourceError:
-            logging.exception('An error occurred while fetching the image info')
-            self.unit.status = BlockedStatus('Error fetching image information')
-            return {}
-
-        pod_env = self._make_pod_env()
-
-        return {
-            'version': 3,  # otherwise resources are ignored
-            'containers': [
-                {
-                    'name': self.app.name,
-                    'imageDetails': image_details,
-                    # TODO: debatable. The idea is that if you want to force an update with the same image name, you
-                    # don't need to empty kubelet cache on each node to have the right version.
-                    # This implies a performance drop upon start.
-                    'imagePullPolicy': 'Always',
-                    'ports': [{'containerPort': 80, 'protocol': 'TCP'}],
-                    'envConfig': pod_env,
-                    'kubernetes': {
-                        'readinessProbe': {'httpGet': {'path': '/', 'port': 80}},
-                    },
-                }
-            ],
-        }
-
-    def _configure_pod(self, event: ops.framework.EventBase) -> None:
-        """Assemble the pod spec and apply it, if possible.
-
-        :param event: Event that triggered the method.
-        """
-
-        env = self.model.config['environment']
-        ctx = self._get_context_from_relations()
-
-        if env:
-            j2env = Environment(loader=BaseLoader)
-            j2template = j2env.parse(env)
-            missing_vars = set()
-
-            for req_var in meta.find_undeclared_variables(j2template):
-                if not ctx.get(req_var):
-                    missing_vars.add(req_var)
-
-            if missing_vars:
-                logger.info(
-                    "Missing YAML vars to interpolate the 'environment' config option, "
-                    "setting status to 'waiting' : %s",
-                    ", ".join(sorted(missing_vars)),
-                )
-                self.unit.status = BlockedStatus('Waiting for {} relation(s)'.format(", ".join(sorted(missing_vars))))
-                event.defer()
-                return
-
-        if not self.unit.is_leader():
-            self.unit.status = ActiveStatus()
-            return
-
-        try:
-            self._check_juju_config()
-        except GunicornK8sCharmJujuConfigError as e:
-            self.unit.status = BlockedStatus(str(e))
-            return
-
-        self.unit.status = MaintenanceStatus('Assembling pod spec')
-
-        try:
-            pod_spec = self._make_pod_spec()
-        except GunicornK8sCharmJujuConfigError as e:
-            self.unit.status = BlockedStatus(str(e))
-            return
-
-        resources = pod_spec.get('kubernetesResources', {})
-        resources['ingressResources'] = self._make_k8s_ingress()
-
-        self.unit.status = MaintenanceStatus('Setting pod spec')
-        self.model.pod.set_spec(pod_spec, k8s_resources={'kubernetesResources': resources})
-        logger.info("Setting active status")
-        self.unit.status = ActiveStatus()
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,5 +1,5 @@
 gunicorn-k8s.charm: src/*.py requirements.txt metadata.yaml config.yaml test
-	charmcraft build
+	charmcraft pack
 
 blacken:
 	@echo "Normalising python layout with black."

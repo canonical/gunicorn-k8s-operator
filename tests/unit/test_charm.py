@@ -8,18 +8,11 @@ from unittest.mock import MagicMock, patch
 
 from charm import GunicornK8sCharm, GunicornK8sCharmJujuConfigError, GunicornK8sCharmYAMLError
 
-from ops import testing
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-)
+from ops import testing, pebble
 
 from scenario import (
     JUJU_DEFAULT_CONFIG,
     TEST_JUJU_CONFIG,
-    TEST_CONFIGURE_POD,
-    TEST_MAKE_POD_SPEC,
-    TEST_MAKE_K8S_INGRESS,
     TEST_RENDER_TEMPLATE,
     TEST_PG_URI,
     TEST_PG_CONNSTR,
@@ -49,9 +42,10 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         with patch('test_charm.GunicornK8sCharm._stored') as mock_stored:
             with patch('pgsql.PostgreSQLClient'):
-                mock_stored.reldata = {'pg': 'foo'}
-                c = GunicornK8sCharm(MagicMock())
-                self.assertEqual(c._stored.reldata, mock_stored.reldata)
+                with patch('test_charm.GunicornK8sCharm.on'):
+                    mock_stored.reldata = {'pg': 'foo'}
+                    c = GunicornK8sCharm(MagicMock())
+                    self.assertEqual(c._stored.reldata, mock_stored.reldata)
 
     def test_on_database_relation_joined(self):
         """Test the _on_database_relation_joined function."""
@@ -109,14 +103,14 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.database = self.harness.charm.app.name
         mock_event.master.conn_str = TEST_PG_CONNSTR
         mock_event.master.uri = TEST_PG_URI
-        with patch('charm.GunicornK8sCharm._configure_pod') as configure_pod:
+        with patch('charm.GunicornK8sCharm._on_config_changed') as on_config_changes:
             r = self.harness.charm._on_master_changed(mock_event)
 
             reldata = self.harness.charm._stored.reldata
             self.assertEqual(reldata['pg']['conn_str'], mock_event.master.conn_str)
             self.assertEqual(reldata['pg']['db_uri'], mock_event.master.uri)
             self.assertEqual(r, None)
-            configure_pod.assert_called_with(mock_event)
+            on_config_changes.assert_called_with(mock_event)
 
     def test_on_standby_changed(self):
         """Test the _on_standby_changed function."""
@@ -160,16 +154,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 # See https://github.com/canonical/operator/blob/master/ops/testing.py#L415
                 # The second argument is the list of key to reset
                 self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
-    def test_make_k8s_ingress(self):
-        """Check the crafting of the ingress part of the pod spec."""
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
-        for scenario, values in TEST_MAKE_K8S_INGRESS.items():
-            with self.subTest(scenario=scenario):
-                self.harness.update_config(values['config'])
-                self.assertEqual(self.harness.charm._make_k8s_ingress(), values['expected'])
-                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
 
     def test_render_template(self):
         """Test template rendering."""
@@ -323,98 +307,67 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         self.assertEqual(str(exc.exception), expected_exception)
 
-    @patch('pgsql.client._leader_get')
-    def test_configure_pod(self, mock_leader_get):
-        """Test the pod configuration."""
+    def test_get_pebble_config(self):
+        """Test the _get_pebble_config function."""
 
+        # No problem
         mock_event = MagicMock()
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+        expected_ret = {
+            "summary": "gunicorn layer",
+            "description": "gunicorn layer",
+            "services": {
+                "gunicorn": {
+                    "override": "replace",
+                    "summary": "gunicorn service",
+                    "command": "/srv/gunicorn/run",
+                    "startup": "enabled",
+                }
+            },
+        }
 
-        self.harness.set_leader(False)
-        self.harness.charm.unit.status = BlockedStatus("Testing")
-        self.harness.charm._configure_pod(mock_event)
-        self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
+        r = self.harness.charm._get_pebble_config(mock_event)
+        self.assertEqual(r, expected_ret)
 
-        for scenario, values in TEST_CONFIGURE_POD.items():
-            with self.subTest(scenario=scenario):
-                mock_leader_get.return_value = values['_leader_get']
-                self.harness.update_config(values['config'])
-                self.harness.set_leader(True)
-                self.harness.charm._configure_pod(mock_event)
-                if values['expected']:
-                    self.assertEqual(self.harness.charm.unit.status, BlockedStatus(values['expected']))
-                else:
-                    self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
+        # Bad _make_pod_env()
+        expected_output = "ERROR:charm:Error getting pod_env_config: foo\nTraceback"
+        expected_ret = {}
+        with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
+            make_pod_env.side_effect = GunicornK8sCharmJujuConfigError('foo')
 
-                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
+            with self.assertLogs(level='ERROR') as logger:
+                r = self.harness.charm._get_pebble_config(mock_event)
+                self.assertEqual(r, expected_ret)
+            self.assertTrue(expected_output in logger.output[0])
 
-        # Test missing vars
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config(
-            {
-                'image_path': 'my_gunicorn_app:devel',
-                'external_hostname': 'example.com',
-                'environment': 'DB_URI: {{pg.uri}}',
-            }
-        )
-        self.harness.set_leader(True)
-        expected_status = 'Waiting for pg relation(s)'
+    def test_on_gunicorn_pebble_ready(self):
+        """Test the _on_gunicorn_pebble_ready function."""
 
-        self.harness.charm._configure_pod(mock_event)
+        # No problem
+        mock_event = MagicMock()
+        expected_ret = None
 
-        mock_event.defer.assert_called_once()
-        self.assertEqual(self.harness.charm.unit.status, BlockedStatus(expected_status))
+        r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
+        self.assertEqual(r, expected_ret)
 
-        # Test no missing vars
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config(
-            {
-                'image_path': 'my_gunicorn_app:devel',
-                'external_hostname': 'example.com',
-                'environment': 'DB_URI: {{pg.uri}}',
-            }
-        )
+    def test_configure_workload(self):
+        """Test the _configure_workload function."""
 
-        reldata = self.harness.charm._stored.reldata
-        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
-        self.harness.set_leader(True)
-        # Set up random relation
-        self.harness.disable_hooks()  # no need for hooks to fire for this test
-        relation_id = self.harness.add_relation('myrel', 'myapp')
-        self.harness.add_relation_unit(relation_id, 'myapp/0')
-        self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
-        expected_status = 'Waiting for pg relation(s)'
+        # No problem
+        mock_event = MagicMock()
+        expected_ret = None
 
-        self.harness.charm._configure_pod(mock_event)
+        r = self.harness.charm._configure_workload(mock_event)
+        self.assertEqual(r, expected_ret)
 
-        self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
+        # pebble not ready
+        expected_output = 'waiting for pebble to start'
+        with patch('ops.model.Container.get_plan') as get_plan:
+            get_plan.side_effect = pebble.ConnectionError
 
-        # Test incorrect YAML
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config(
-            {
-                'image_path': 'my_gunicorn_app:devel',
-                'external_hostname': 'example.com',
-                'environment': 'a: :',
-            }
-        )
-        self.harness.set_leader(True)
-        expected_status = 'Could not parse Juju config \'environment\' as a YAML dict - check "juju debug-log -l ERROR"'
-
-        self.harness.charm._configure_pod(mock_event)
-
-        self.assertEqual(self.harness.charm.unit.status, BlockedStatus(expected_status))
-
-    def test_make_pod_spec(self):
-        """Check the crafting of the pod spec."""
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
-        for scenario, values in TEST_MAKE_POD_SPEC.items():
-            with self.subTest(scenario=scenario):
-                self.harness.update_config(values['config'])
-                self.assertEqual(self.harness.charm._make_pod_spec(), values['pod_spec'])
-                self.harness.update_config(JUJU_DEFAULT_CONFIG)  # You need to clean the config after each run
+            with self.assertLogs(level='DEBUG') as logger:
+                r = self.harness.charm._configure_workload(mock_event)
+                self.assertEqual(r, expected_ret)
+            self.assertTrue(expected_output in logger.output[0])
 
 
 if __name__ == '__main__':

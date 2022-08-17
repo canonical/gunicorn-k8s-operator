@@ -6,15 +6,17 @@ docs: https://discourse.charmhub.io/t/gunicorn-docs-index/4606
 description: |
   A charm for deploying and managing Gunicorn workloads
 summary: |
-  A charm for deploying and managing Gunicorn workloads
-series: [kubernetes]
-min-juju-version: 2.8.0  # charm storage in state
+  Gunicorn charm
+
+containers:
+  gunicorn:
+    resource: gunicorn-image
+
 resources:
   gunicorn-image:
     type: oci-image
-    description: docker image for Gunicorn
-    auto-fetch: true
-    upstream-source: 'gunicorncharmers/gunicorn-app:20.0.4-20.04_edge'
+    description: Docker image for gunicorn to run
+
 requires:
   pg:
     interface: pgsql
@@ -22,3 +24,5 @@ requires:
   influxdb:
     interface: influxdb-api
     limit: 1
+  ingress:
+    interface: ingress
