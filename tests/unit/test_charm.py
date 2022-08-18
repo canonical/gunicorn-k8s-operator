@@ -309,8 +309,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_get_pebble_config(self):
         """Test the _get_pebble_config function."""
-
-        # No problem
         mock_event = MagicMock()
         expected_ret = {
             "summary": "gunicorn layer",
@@ -323,14 +321,23 @@ class TestGunicornK8sCharm(unittest.TestCase):
                     "startup": "enabled",
                 }
             },
+            "checks": {
+                "gunicorn-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": "http://0.0.0.0:80"},
+                },
+            },
         }
 
         r = self.harness.charm._get_pebble_config(mock_event)
         self.assertEqual(r, expected_ret)
 
-        # Bad _make_pod_env()
+    def test_get_pebble_config_error(self):
+        """Test the _get_pebble_config function when throwing an error."""
         expected_output = "ERROR:charm:Error getting pod_env_config: foo\nTraceback"
         expected_ret = {}
+        mock_event = MagicMock()
         with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
             make_pod_env.side_effect = GunicornK8sCharmJujuConfigError('foo')
 

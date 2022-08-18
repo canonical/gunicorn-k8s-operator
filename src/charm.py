@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
-CONTAINER_NAME = 'gunicorn'
 
 
 class GunicornK8sCharmJujuConfigError(Exception):
@@ -127,7 +126,7 @@ class GunicornK8sCharm(CharmBase):
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
 
-        container = self.unit.get_container(CONTAINER_NAME)
+        container = self.unit.get_container(self.app.name.replace("-k8s", ""))
         # pebble may not be ready, in which case we just return
         try:
             services = container.get_plan().to_dict().get("services", {})
@@ -138,12 +137,8 @@ class GunicornK8sCharm(CharmBase):
 
         if services != pebble_config["services"]:
             logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
-            container.add_layer(CONTAINER_NAME, pebble_config, combine=True)
-
-            status = container.get_service("gunicorn")
-            if status.current == ServiceStatus.ACTIVE:
-                container.stop(CONTAINER_NAME)
-            container.start(CONTAINER_NAME)
+            container.add_layer(self.app.name.replace("-k8s", ""), pebble_config, combine=True)
+            container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
 

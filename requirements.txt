@@ -1,3 +1,2 @@
-https://github.com/canonical/operator/archive/refs/heads/master.zip
+ops
 ops-lib-pgsql
-https://github.com/juju-solutions/resource-oci-image/archive/master.zip
