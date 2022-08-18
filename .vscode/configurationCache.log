@@ -1,1 +1,0 @@
-{"buildTargets":["blacken","clean","gunicorn-k8s.charm","lint","test","unittest"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}
