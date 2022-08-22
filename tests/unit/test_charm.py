@@ -50,14 +50,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
     def test_on_database_relation_joined(self):
         """Test the _on_database_relation_joined function."""
 
-        # Unit is leader
         mock_event = MagicMock()
         self.harness.disable_hooks()  # we don't want leader-set to fire
         self.harness.set_leader(True)
 
         self.harness.charm._on_database_relation_joined(mock_event)
 
-        self.assertEqual(mock_event.database, self.harness.charm.app.name)
+        self.assertEqual(mock_event.database, self.harness.charm.app.name, "Unit is leader")
 
         # Unit is not leader, DB not ready
         mock_event = MagicMock()
@@ -68,14 +67,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         mock_event.defer.assert_called_once()
 
-        # Unit is leader, DB ready
         mock_event = MagicMock()
         self.harness.disable_hooks()  # we don't want leader-set to fire
         self.harness.set_leader(False)
         mock_event.database = self.harness.charm.app.name
 
         r = self.harness.charm._on_database_relation_joined(mock_event)
-        self.assertEqual(r, None)
+        self.assertEqual(r, None, "Unit is leader, DB ready")
 
     def test_on_master_changed(self):
         """Test the _on_master_changed function."""
@@ -115,14 +113,12 @@ class TestGunicornK8sCharm(unittest.TestCase):
     def test_on_standby_changed(self):
         """Test the _on_standby_changed function."""
 
-        # Database not ready
         mock_event = MagicMock()
         mock_event.database = None
 
         r = self.harness.charm._on_standby_changed(mock_event)
-        self.assertEqual(r, None)
+        self.assertEqual(r, None, "Database not ready")
 
-        # Database ready
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
 
@@ -132,7 +128,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._on_standby_changed(mock_event)
 
         reldata = self.harness.charm._stored.reldata
-        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
+        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI], "Database ready")
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
@@ -212,15 +208,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
     def test_validate_yaml(self):
         """Test the _validate_yaml function."""
 
-        # Proper YAML and type
         test_str = "a: b\n1: 2"
         expected_type = dict
 
         r = self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(r, None)
+        self.assertEqual(r, None, "Proper YAML and type")
 
-        # Incorrect YAML
         test_str = "a: :"
         expected_type = dict
         expected_output = [
@@ -236,10 +230,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
             with self.assertRaises(GunicornK8sCharmYAMLError) as exc:
                 self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(sorted(logger.output), expected_output)
+        self.assertEqual(sorted(logger.output), expected_output, "Incorrect YAML")
         self.assertEqual(str(exc.exception), expected_exception)
 
-        # Proper YAML, incorrect type
         test_str = "a: b"
         expected_type = str
         expected_output = [
@@ -252,27 +245,25 @@ class TestGunicornK8sCharm(unittest.TestCase):
             with self.assertRaises(GunicornK8sCharmYAMLError) as exc:
                 self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(sorted(logger.output), expected_output)
+        self.assertEqual(sorted(logger.output), expected_output, "Proper YAML, incorrect type")
         self.assertEqual(str(exc.exception), expected_exception)
 
     def test_make_pod_env(self):
         """Test the _make_pod_env function."""
 
-        # No env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({'environment': ''})
         expected_ret = {}
 
         r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret)
+        self.assertEqual(r, expected_ret, "No env")
 
-        # Proper env, no templating/relation
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({'environment': 'a: b'})
         expected_ret = {'a': 'b'}
 
         r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret)
+        self.assertEqual(r, expected_ret, "Proper env, no templating/relation")
 
         # Proper env with templating/relations
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
@@ -349,24 +340,21 @@ class TestGunicornK8sCharm(unittest.TestCase):
     def test_on_gunicorn_pebble_ready(self):
         """Test the _on_gunicorn_pebble_ready function."""
 
-        # No problem
         mock_event = MagicMock()
         expected_ret = None
 
         r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
-        self.assertEqual(r, expected_ret)
+        self.assertEqual(r, expected_ret, "Test when there is no problem")
 
     def test_configure_workload(self):
         """Test the _configure_workload function."""
 
-        # No problem
         mock_event = MagicMock()
         expected_ret = None
 
         r = self.harness.charm._configure_workload(mock_event)
-        self.assertEqual(r, expected_ret)
+        self.assertEqual(r, expected_ret, "Test when there is no problem")
 
-        # pebble not ready
         expected_output = 'waiting for pebble to start'
         with patch('ops.model.Container.get_plan') as get_plan:
             get_plan.side_effect = pebble.ConnectionError
@@ -374,7 +362,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             with self.assertLogs(level='DEBUG') as logger:
                 r = self.harness.charm._configure_workload(mock_event)
                 self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
+            self.assertTrue(expected_output in logger.output[0], "Test when pebble is not ready")
 
 
 if __name__ == '__main__':

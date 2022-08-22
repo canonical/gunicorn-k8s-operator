@@ -135,10 +135,9 @@ class GunicornK8sCharm(CharmBase):
             logger.debug('waiting for pebble to start')
             return
 
-        if services != pebble_config["services"]:
-            logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
-            container.add_layer(self.app.name.replace("-k8s", ""), pebble_config, combine=True)
-            container.pebble.replan_services()
+        logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
+        container.add_layer(self.app.name.replace("-k8s", ""), pebble_config, combine=True)
+        container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
 
