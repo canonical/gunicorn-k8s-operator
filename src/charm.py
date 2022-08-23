@@ -96,10 +96,9 @@ class GunicornK8sCharm(CharmBase):
             event.defer()
             return {}
 
-        try:
-            self._check_juju_config()
-        except GunicornK8sCharmJujuConfigError as e:
-            self.unit.status = BlockedStatus(str(e))
+        juju_conf = self._check_juju_config()
+        if juju_conf:
+            self.unit.status = BlockedStatus(str(juju_conf))
             return {}
 
         if pod_env_config:
@@ -128,9 +127,7 @@ class GunicornK8sCharm(CharmBase):
 
         container = self.unit.get_container(self.app.name.replace("-k8s", ""))
         # pebble may not be ready, in which case we just return
-        try:
-            services = container.get_plan().to_dict().get("services", {})
-        except ops.pebble.ConnectionError:
+        if not container.can_connect():
             self.unit.status = MaintenanceStatus('waiting for pebble to start')
             logger.debug('waiting for pebble to start')
             return
@@ -200,9 +197,7 @@ class GunicornK8sCharm(CharmBase):
                 logger.error("Required Juju config item not set : %s", required)
                 errors.append(required)
         if errors:
-            raise GunicornK8sCharmJujuConfigError(
-                "Required Juju config item(s) not set : {}".format(", ".join(sorted(errors)))
-            )
+            return "Required Juju config item(s) not set : {}".format(", ".join(sorted(errors)))
 
     def _render_template(self, tmpl: str, ctx: dict) -> str:
         """Render a Jinja2 template
@@ -284,7 +279,7 @@ class GunicornK8sCharm(CharmBase):
                 )
 
         if err:
-            raise GunicornK8sCharmYAMLError('YAML parsing failed, please check "juju debug-log -l ERROR"')
+            return 'YAML parsing failed, please check "juju debug-log -l ERROR"'
 
     def _make_pod_env(self) -> dict:
         """Return an envConfig with some core configuration.
@@ -313,9 +308,8 @@ class GunicornK8sCharm(CharmBase):
 
         rendered_env = self._render_template(env, ctx)
 
-        try:
-            self._validate_yaml(rendered_env, dict)
-        except GunicornK8sCharmYAMLError:
+        yaml_val = self._validate_yaml(rendered_env, dict)
+        if yaml_val:
             raise GunicornK8sCharmJujuConfigError(
                 "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""
             )

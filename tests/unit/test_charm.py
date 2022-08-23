@@ -139,10 +139,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 self.harness.update_config(values['config'])
                 if values['expected']:
                     with self.assertLogs(level='ERROR') as logger:
-                        with self.assertRaises(GunicornK8sCharmJujuConfigError) as exc:
-                            self.harness.charm._check_juju_config()
+                        self.harness.charm._check_juju_config()
                     self.assertEqual(sorted(logger.output), sorted(values['logger']))
-                    self.assertEqual(str(exc.exception), values['expected'])
                 else:
                     self.assertEqual(self.harness.charm._check_juju_config(), None)
 
@@ -224,14 +222,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
             '    a: :\n'
             '       ^'
         ]
-        expected_exception = 'YAML parsing failed, please check "juju debug-log -l ERROR"'
 
         with self.assertLogs(level='ERROR') as logger:
-            with self.assertRaises(GunicornK8sCharmYAMLError) as exc:
-                self.harness.charm._validate_yaml(test_str, expected_type)
+            self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(sorted(logger.output), expected_output, "Incorrect YAML")
-        self.assertEqual(str(exc.exception), expected_exception)
 
         test_str = "a: b"
         expected_type = str
@@ -239,14 +234,10 @@ class TestGunicornK8sCharm(unittest.TestCase):
             "ERROR:charm:Expected type '<class 'str'>' but got '<class 'dict'>' when " 'parsing YAML : a: b'
         ]
 
-        expected_exception = 'YAML parsing failed, please check "juju debug-log -l ERROR"'
-
         with self.assertLogs(level='ERROR') as logger:
-            with self.assertRaises(GunicornK8sCharmYAMLError) as exc:
-                self.harness.charm._validate_yaml(test_str, expected_type)
+            self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(sorted(logger.output), expected_output, "Proper YAML, incorrect type")
-        self.assertEqual(str(exc.exception), expected_exception)
 
     def test_make_pod_env(self):
         """Test the _make_pod_env function."""
@@ -356,8 +347,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret, "Test when there is no problem")
 
         expected_output = 'waiting for pebble to start'
-        with patch('ops.model.Container.get_plan') as get_plan:
-            get_plan.side_effect = pebble.ConnectionError
+        with patch('ops.model.Container.can_connect') as can_connect:
+            can_connect.return_value = False
 
             with self.assertLogs(level='DEBUG') as logger:
                 r = self.harness.charm._configure_workload(mock_event)
