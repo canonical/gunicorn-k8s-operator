@@ -79,7 +79,7 @@ class GunicornK8sCharm(CharmBase):
                 "gunicorn-ready": {
                     "override": "replace",
                     "level": "ready",
-                    "http": {"url": "http://0.0.0.0:80"},
+                    "http": {"url": "http://localhost:80"},
                 },
             },
         }
