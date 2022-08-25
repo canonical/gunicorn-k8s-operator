@@ -16,7 +16,6 @@ from ops.model import (
     BlockedStatus,
     MaintenanceStatus,
 )
-from ops.pebble import ServiceStatus
 import pgsql
 
 
@@ -24,19 +23,7 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
-
-
-class GunicornK8sCharmJujuConfigError(Exception):
-    """Exception when the Juju config is bad."""
-
-
-class GunicornK8sCharmYAMLError(Exception):
-    """Exception raised when parsing YAML fails"""
-
-
-class GunicornK8sWaitingForRelationsError(Exception):
-    """Exception when waiting for relations."""
-
+CONTAINER_NAME = yaml.full_load(open('metadata.yaml', 'r')).get('name').replace("-k8s", "")
 
 class GunicornK8sCharm(CharmBase):
     _stored = StoredState()
@@ -85,14 +72,16 @@ class GunicornK8sCharm(CharmBase):
         }
 
         # Update pod environment config.
-        try:
-            pod_env_config = self._make_pod_env()
-        except GunicornK8sCharmJujuConfigError as e:
-            logger.exception("Error getting pod_env_config: %s", e)
+        pod_env_config = self._make_pod_env()
+        if type(pod_env_config) is bool:
+            logger.error("Error getting pod_env_config: %s", 
+            "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\"")
             self.unit.status = BlockedStatus('Error getting pod_env_config')
             return {}
-        except GunicornK8sWaitingForRelationsError as e:
-            self.unit.status = BlockedStatus(str(e))
+        elif type(pod_env_config) is set:
+            self.unit.status = BlockedStatus(
+                'Waiting for {} relation(s)'.format(", ".join(sorted(pod_env_config)))
+            )
             event.defer()
             return {}
 
@@ -125,7 +114,7 @@ class GunicornK8sCharm(CharmBase):
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
 
-        container = self.unit.get_container(self.app.name.replace("-k8s", ""))
+        container = self.unit.get_container(CONTAINER_NAME)
         # pebble may not be ready, in which case we just return
         if not container.can_connect():
             self.unit.status = MaintenanceStatus('waiting for pebble to start')
@@ -133,7 +122,7 @@ class GunicornK8sCharm(CharmBase):
             return
 
         logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
-        container.add_layer(self.app.name.replace("-k8s", ""), pebble_config, combine=True)
+        container.add_layer(CONTAINER_NAME, pebble_config, combine=True)
         container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
@@ -186,8 +175,6 @@ class GunicornK8sCharm(CharmBase):
     def _check_juju_config(self) -> None:
         """Check if all the required Juju config options are set,
         and if all the Juju config options are properly formatted
-
-        :raises GunicornK8sCharmJujuConfigError: if a required config is not set
         """
 
         # Verify required items
@@ -256,10 +243,7 @@ class GunicornK8sCharm(CharmBase):
         return ctx
 
     def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> None:
-        """Validate that the supplied YAML is parsed into the supplied type.
-
-        :raises GunicornK8sCharmYAMLError: if the YAML is incorrect, or if it's not parsed into the expected type
-        """
+        """Validate that the supplied YAML is parsed into the supplied type."""
         err = False
         parsed = None
 
@@ -279,7 +263,7 @@ class GunicornK8sCharm(CharmBase):
                 )
 
         if err:
-            return 'YAML parsing failed, please check "juju debug-log -l ERROR"'
+            return err
 
     def _make_pod_env(self) -> dict:
         """Return an envConfig with some core configuration.
@@ -302,17 +286,13 @@ class GunicornK8sCharm(CharmBase):
                 missing_vars.add(req_var)
 
         if missing_vars:
-            raise GunicornK8sWaitingForRelationsError(
-                'Waiting for {} relation(s)'.format(", ".join(sorted(missing_vars)))
-            )
+            return missing_vars
 
         rendered_env = self._render_template(env, ctx)
 
         yaml_val = self._validate_yaml(rendered_env, dict)
         if yaml_val:
-            raise GunicornK8sCharmJujuConfigError(
-                "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""
-            )
+            return yaml_val
 
         env = yaml.safe_load(rendered_env)
 

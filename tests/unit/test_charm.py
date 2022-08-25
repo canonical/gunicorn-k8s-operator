@@ -6,9 +6,9 @@ import unittest
 
 from unittest.mock import MagicMock, patch
 
-from charm import GunicornK8sCharm, GunicornK8sCharmJujuConfigError, GunicornK8sCharmYAMLError
+from charm import GunicornK8sCharm
 
-from ops import testing, pebble
+from ops import testing
 
 from scenario import (
     JUJU_DEFAULT_CONFIG,
@@ -47,7 +47,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
                     c = GunicornK8sCharm(MagicMock())
                     self.assertEqual(c._stored.reldata, mock_stored.reldata)
 
-    def test_on_database_relation_joined(self):
+    def test_on_database_relation_joined_unit_is_leader(self):
         """Test the _on_database_relation_joined function."""
 
         mock_event = MagicMock()
@@ -56,9 +56,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         self.harness.charm._on_database_relation_joined(mock_event)
 
-        self.assertEqual(mock_event.database, self.harness.charm.app.name, "Unit is leader")
+        self.assertEqual(mock_event.database, self.harness.charm.app.name)
 
-        # Unit is not leader, DB not ready
+    def test_on_database_relation_joined_unit_is_not_leader(self):
         mock_event = MagicMock()
         self.harness.disable_hooks()  # we don't want leader-set to fire
         self.harness.set_leader(False)
@@ -73,7 +73,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.database = self.harness.charm.app.name
 
         r = self.harness.charm._on_database_relation_joined(mock_event)
-        self.assertEqual(r, None, "Unit is leader, DB ready")
+        self.assertEqual(r, None)
 
     def test_on_master_changed(self):
         """Test the _on_master_changed function."""
@@ -110,14 +110,17 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.assertEqual(r, None)
             on_config_changes.assert_called_with(mock_event)
 
-    def test_on_standby_changed(self):
+    def test_on_standby_changed_database_not_ready(self):
         """Test the _on_standby_changed function."""
 
         mock_event = MagicMock()
         mock_event.database = None
 
         r = self.harness.charm._on_standby_changed(mock_event)
-        self.assertEqual(r, None, "Database not ready")
+        self.assertEqual(r, None)
+
+    def test_on_standby_changed_database_ready(self):
+        """Test the _on_standby_changed function."""
 
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
@@ -128,7 +131,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._on_standby_changed(mock_event)
 
         reldata = self.harness.charm._stored.reldata
-        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI], "Database ready")
+        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
@@ -203,7 +206,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(sorted(logger.output), sorted(expected_logger))
         self.assertEqual(r, expected_ret)
 
-    def test_validate_yaml(self):
+    def test_validate_yaml_proper_type_proper_yaml(self):
         """Test the _validate_yaml function."""
 
         test_str = "a: b\n1: 2"
@@ -211,7 +214,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         r = self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(r, None, "Proper YAML and type")
+        self.assertEqual(r, None)
+    
+    def test_validate_yaml_incorrect_yaml(self):
 
         test_str = "a: :"
         expected_type = dict
@@ -226,7 +231,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
         with self.assertLogs(level='ERROR') as logger:
             self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(sorted(logger.output), expected_output, "Incorrect YAML")
+        self.assertEqual(sorted(logger.output), expected_output)
+
+    def test_validate_yaml_incorrect_type_proper_yaml(self):
 
         test_str = "a: b"
         expected_type = str
@@ -237,9 +244,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
         with self.assertLogs(level='ERROR') as logger:
             self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(sorted(logger.output), expected_output, "Proper YAML, incorrect type")
+        self.assertEqual(sorted(logger.output), expected_output)
 
-    def test_make_pod_env(self):
+    def test_make_pod_env_empty_conf(self):
         """Test the _make_pod_env function."""
 
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
@@ -249,12 +256,16 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret, "No env")
 
+    def test_make_pod_env_proper_env_no_temp_rel(self):
+
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({'environment': 'a: b'})
         expected_ret = {'a': 'b'}
 
         r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret, "Proper env, no templating/relation")
+        self.assertEqual(r, expected_ret)
+    
+    def test_make_pod_env_proper_env_temp_rel(self):
 
         # Proper env with templating/relations
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
@@ -276,18 +287,22 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret)
 
+    def test_make_pod_env_improper_env(self):
+
         # Improper env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({'environment': 'a: :'})
         expected_ret = None
-        expected_exception = (
-            'Could not parse Juju config \'environment\' as a YAML dict - check "juju debug-log -l ERROR"'
-        )
-
-        with self.assertRaises(GunicornK8sCharmJujuConfigError) as exc:
+        expected_output = [
+            'ERROR:charm:Error when parsing the following YAML : a: : : mapping values '
+            'are not allowed here\n'
+            '  in "<unicode string>", line 1, column 4:\n'
+            '    a: :\n'
+            '       ^'
+        ]
+        with self.assertLogs(level='ERROR') as logger:
             self.harness.charm._make_pod_env()
-
-        self.assertEqual(str(exc.exception), expected_exception)
+            self.assertEqual(logger.output, expected_output)
 
     def test_get_pebble_config(self):
         """Test the _get_pebble_config function."""
@@ -317,35 +332,39 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_get_pebble_config_error(self):
         """Test the _get_pebble_config function when throwing an error."""
-        expected_output = "ERROR:charm:Error getting pod_env_config: foo\nTraceback"
+        expected_output = "ERROR:charm:Error getting pod_env_config: Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""
         expected_ret = {}
         mock_event = MagicMock()
         with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
-            make_pod_env.side_effect = GunicornK8sCharmJujuConfigError('foo')
+            make_pod_env.return_value = True
 
             with self.assertLogs(level='ERROR') as logger:
                 r = self.harness.charm._get_pebble_config(mock_event)
                 self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
+            self.assertEqual(expected_output, logger.output[0])
 
-    def test_on_gunicorn_pebble_ready(self):
+    def test_on_gunicorn_pebble_ready_no_problem(self):
         """Test the _on_gunicorn_pebble_ready function."""
 
         mock_event = MagicMock()
         expected_ret = None
 
         r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
-        self.assertEqual(r, expected_ret, "Test when there is no problem")
+        self.assertEqual(r, expected_ret)
 
-    def test_configure_workload(self):
+    def test_configure_workload_no_problem(self):
         """Test the _configure_workload function."""
 
         mock_event = MagicMock()
         expected_ret = None
 
         r = self.harness.charm._configure_workload(mock_event)
-        self.assertEqual(r, expected_ret, "Test when there is no problem")
-
+        self.assertEqual(r, expected_ret)
+    
+    def test_configure_workload_pebble_not_ready(self):
+        
+        mock_event = MagicMock()
+        expected_ret = None
         expected_output = 'waiting for pebble to start'
         with patch('ops.model.Container.can_connect') as can_connect:
             can_connect.return_value = False
@@ -353,7 +372,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             with self.assertLogs(level='DEBUG') as logger:
                 r = self.harness.charm._configure_workload(mock_event)
                 self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0], "Test when pebble is not ready")
+            self.assertTrue(expected_output in logger.output[0])
 
 
 if __name__ == '__main__':
