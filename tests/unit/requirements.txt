@@ -1,0 +1,5 @@
+PyYAML
+pytest
+pytest-cov
+pytest-subtests
+jinja2

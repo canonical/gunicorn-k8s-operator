@@ -1,0 +1,28 @@
+# Copyright 2020 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: gunicorn-k8s
+display-name: Gunicorn
+docs: https://discourse.charmhub.io/t/gunicorn-docs-index/4606
+description: |
+  A charm for deploying and managing Gunicorn workloads
+summary: |
+  Gunicorn charm
+
+containers:
+  gunicorn:
+    resource: gunicorn-image
+
+resources:
+  gunicorn-image:
+    type: oci-image
+    description: Docker image for gunicorn to run
+
+requires:
+  pg:
+    interface: pgsql
+    limit: 1
+  influxdb:
+    interface: influxdb-api
+    limit: 1
+  ingress:
+    interface: ingress
