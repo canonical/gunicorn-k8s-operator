@@ -6,7 +6,7 @@ from pytest_operator.plugin import OpsTest
 async def test_build_and_deploy(ops_test: OpsTest):
     charm = await ops_test.build_charm(".")
     resources = {
-        "gunicorn-image": "gunicorncharmers/gunicorn-app:20.0.4-20.04_edge"
+        "gunicorn-image": "localhost:32000/gunicorn:latest"
     }
     await ops_test.model.deploy(charm, resources=resources)
     await ops_test.model.wait_for_idle(status=ActiveStatus.name)
