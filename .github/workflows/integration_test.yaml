@@ -43,7 +43,7 @@ jobs:
           docker tag $imageId localhost:32000/gunicorn:latest
           docker push localhost:32000/gunicorn:latest
       - name: Run integration tests
-        run: tox -e integration
+        run: tox -e integration -- --model testing --gunicorn-image localhost:32000/gunicorn:latest
       - name: Dump logs
         uses: canonical/charm-logdump-action@main
         if: failure()
