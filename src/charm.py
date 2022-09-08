@@ -25,6 +25,7 @@ REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
 CONTAINER_NAME = yaml.full_load(open('metadata.yaml', 'r')).get('name').replace("-k8s", "")
 
+
 class GunicornK8sCharm(CharmBase):
     _stored = StoredState()
 
@@ -74,14 +75,14 @@ class GunicornK8sCharm(CharmBase):
         # Update pod environment config.
         pod_env_config = self._make_pod_env()
         if type(pod_env_config) is bool:
-            logger.error("Error getting pod_env_config: %s", 
-            "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\"")
+            logger.error(
+                "Error getting pod_env_config: %s",
+                "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\"",
+            )
             self.unit.status = BlockedStatus('Error getting pod_env_config')
             return {}
         elif type(pod_env_config) is set:
-            self.unit.status = BlockedStatus(
-                'Waiting for {} relation(s)'.format(", ".join(sorted(pod_env_config)))
-            )
+            self.unit.status = BlockedStatus('Waiting for {} relation(s)'.format(", ".join(sorted(pod_env_config))))
             event.defer()
             return {}
 

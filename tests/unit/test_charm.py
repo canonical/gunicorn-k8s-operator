@@ -128,7 +128,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.standbys = [MagicMock()]
         mock_event.standbys[0].uri = TEST_PG_URI
 
-        r = self.harness.charm._on_standby_changed(mock_event)
+        self.harness.charm._on_standby_changed(mock_event)
 
         reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
@@ -215,7 +215,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(r, None)
-    
+
     def test_validate_yaml_incorrect_yaml(self):
 
         test_str = "a: :"
@@ -264,7 +264,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret)
-    
+
     def test_make_pod_env_proper_env_temp_rel(self):
 
         # Proper env with templating/relations
@@ -292,7 +292,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # Improper env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({'environment': 'a: :'})
-        expected_ret = None
         expected_output = [
             'ERROR:charm:Error when parsing the following YAML : a: : : mapping values '
             'are not allowed here\n'
@@ -332,7 +331,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_get_pebble_config_error(self):
         """Test the _get_pebble_config function when throwing an error."""
-        expected_output = "ERROR:charm:Error getting pod_env_config: Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""
+        expected_output = "ERROR:charm:Error getting pod_env_config: Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""  # noqa: E501
         expected_ret = {}
         mock_event = MagicMock()
         with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
@@ -360,9 +359,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         r = self.harness.charm._configure_workload(mock_event)
         self.assertEqual(r, expected_ret)
-    
+
     def test_configure_workload_pebble_not_ready(self):
-        
+
         mock_event = MagicMock()
         expected_ret = None
         expected_output = 'waiting for pebble to start'
