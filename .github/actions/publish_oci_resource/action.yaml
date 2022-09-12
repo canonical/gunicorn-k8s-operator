@@ -1,6 +1,6 @@
 name: Publish OCI resource
 description: Publish OCI image as a charm resource
-needs: build-gunicorn-image
+uses: ./.github/actions/build_oci_image
 inputs:
   charm-name:
     required: true
