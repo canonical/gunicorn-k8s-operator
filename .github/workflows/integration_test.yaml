@@ -15,6 +15,7 @@ jobs:
       - uses: ./.github/actions/build_oci_image
         id: build
         with:
+          context: ./docker/app
           dockerfile: docker/app/Dockerfile
           resource-name: gunicorn-image
   integration-test-microk8s:
