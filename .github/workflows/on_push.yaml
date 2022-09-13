@@ -36,10 +36,13 @@ jobs:
   tests:
     name: Run tests
     uses: ./.github/workflows/test.yaml
+  integration-tests:
+    name: Run integration tests
+    uses: ./.github/workflows/integration_test.yaml
   publish-gunicorn-image:
     name: Publish gunicorn image to charmhub
     runs-on: ubuntu-latest
-    needs: tests
+    needs: [ tests, integration-tests ]
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/publish_oci_resource
