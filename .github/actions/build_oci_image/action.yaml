@@ -23,10 +23,7 @@ runs:
       id: build-image
       uses: docker/build-push-action@v2
       with:
-<<<<<<< HEAD
         context: ./docker/app
-=======
->>>>>>> upstream/main
         tags: ${{ inputs.tags }}
         file: ${{ inputs.dockerfile }}
         outputs: type=docker,dest=/tmp/${{ inputs.resource-name }}.tar

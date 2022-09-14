@@ -26,11 +26,7 @@ jobs:
   publish-gunicorn-image:
     name: Publish gunicorn image to charmhub
     runs-on: ubuntu-latest
-<<<<<<< HEAD
     needs: [ tests, integration-tests ]
-=======
-    needs: tests
->>>>>>> upstream/main
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/publish_oci_resource

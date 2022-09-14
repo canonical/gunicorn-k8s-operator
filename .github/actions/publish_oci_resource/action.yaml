@@ -1,9 +1,6 @@
 name: Publish OCI resource
 description: Publish OCI image as a charm resource
-<<<<<<< HEAD
 uses: ./.github/actions/build_oci_image
-=======
->>>>>>> upstream/main
 inputs:
   charm-name:
     required: true
