@@ -6,6 +6,10 @@ from jinja2 import Environment, BaseLoader, meta
 import logging
 import yaml
 
+from charms.data_platform_libs.v0.database_requires import (
+    DatabaseCreatedEvent,
+    DatabaseRequires,
+)
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
 from ops.framework import StoredState
@@ -35,6 +39,9 @@ class GunicornK8sCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
 
+        self.mongodb = DatabaseRequires(self, relation_name="mongodb-client", database_name=self.app.name)
+        self.framework.observe(self.mongodb.on.database_created, self._on_mongodb_created)
+
         self.ingress = IngressRequires(
             self,
             {
@@ -45,10 +52,22 @@ class GunicornK8sCharm(CharmBase):
         )
 
         self._stored.set_default(
+            mongodb_reldata={},
             reldata={},
         )
 
         self._init_postgresql_relation()
+
+    def _on_mongodb_created(self, event: DatabaseCreatedEvent) -> None:
+        # XXX: This really should be a peer relation so all units get the info,
+        #      not just the one(s) active at the time the DB is created.
+        self._stored.mongodb_reldata = {
+            "database": self.app.name,
+            "username": event.username,
+            "password": event.password,
+            "endpoints": event.endpoints,
+        }
+        logger.info(self._stored.mongodb_reldata)
 
     def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate pebble config."""
