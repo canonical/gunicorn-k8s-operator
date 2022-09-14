@@ -36,6 +36,7 @@ jobs:
   tests:
     name: Run tests
     uses: ./.github/workflows/test.yaml
+<<<<<<< HEAD
   integration-tests:
     name: Run integration tests
     uses: ./.github/workflows/integration_test.yaml
@@ -43,6 +44,12 @@ jobs:
     name: Publish gunicorn image to charmhub
     runs-on: ubuntu-latest
     needs: [ tests, integration-tests ]
+=======
+  publish-gunicorn-image:
+    name: Publish gunicorn image to charmhub
+    runs-on: ubuntu-latest
+    needs: tests
+>>>>>>> upstream/main
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/publish_oci_resource
@@ -69,7 +76,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Upload charm to charmhub
+<<<<<<< HEAD
         uses: canonical/charming-actions/upload-charm@2.0.0
+=======
+        uses: canonical/charming-actions/upload-charm@2.0.0-rc
+>>>>>>> upstream/main
         with:
           credentials: ${{ secrets.CHARMHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
