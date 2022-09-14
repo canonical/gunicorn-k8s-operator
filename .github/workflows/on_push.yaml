@@ -69,11 +69,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Upload charm to charmhub
-<<<<<<< HEAD
         uses: canonical/charming-actions/upload-charm@2.0.0
-=======
-        uses: canonical/charming-actions/upload-charm@2.0.0-rc
->>>>>>> upstream/main
         with:
           credentials: ${{ secrets.CHARMHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
