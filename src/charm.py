@@ -6,6 +6,9 @@ from jinja2 import Environment, BaseLoader, meta
 import logging
 import yaml
 
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
 from ops.framework import StoredState
@@ -28,12 +31,27 @@ CONTAINER_NAME = yaml.full_load(open('metadata.yaml', 'r')).get('name').replace(
 
 class GunicornK8sCharm(CharmBase):
     _stored = StoredState()
-
+    _log_path = "/var/log/gunicorn.log"
     def __init__(self, *args):
         super().__init__(*args)
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
+
+        # Provide ability for Gunicorn to be scraped by Prometheus using prometheus_scrape
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            relation_name="metrics-endpoint",
+            jobs=[{"static_configs": [{"targets": ["*:80"]}]}],
+        )
+
+        # Enable log forwarding for Loki and other charms that implement loki_push_api
+        self._logging = LogProxyConsumer(self, relation_name="logging", log_files=[self._log_path])
+
+        # Provide grafana dashboards over a relation interface
+        self._grafana_dashboards = GrafanaDashboardProvider(
+            self, relation_name="grafana-dashboard"
+        )
 
         self.ingress = IngressRequires(
             self,

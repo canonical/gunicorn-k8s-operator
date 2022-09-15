@@ -17,6 +17,12 @@ resources:
     type: oci-image
     description: Docker image for gunicorn to run
 
+provides:
+  metrics-endpoint:
+    interface: prometheus_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard
+  
 requires:
   pg:
     interface: pgsql
@@ -26,3 +32,6 @@ requires:
     limit: 1
   ingress:
     interface: ingress
+  logging:
+    interface: loki_push_api
+    limit: 1
