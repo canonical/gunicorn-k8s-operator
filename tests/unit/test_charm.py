@@ -133,6 +133,36 @@ class TestGunicornK8sCharm(unittest.TestCase):
         reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
+    def test_on_mongodb_created(self):
+        """Test the _on_mongodb_created function."""
+
+        mock_event = MagicMock()
+        mock_event.username = "someuser"
+        mock_event.password = "somepassword"
+        mock_event.endpoints = "someendpoint"
+
+        self.harness.disable_hooks()  # we don't want leader-set to fire
+        self.harness.add_relation("peer", self.harness.charm.app.name)
+        self.harness.set_leader(False)
+        self.harness.charm._on_mongodb_created(mock_event)
+
+        # Confirm there's nothing in our peer relation because we're not the
+        # leader.
+        peer_relation = self.harness.model.get_relation("peer")
+        self.assertEqual(peer_relation.data[self.harness.charm.app], {})
+
+        # Now set to leader and retry.
+        self.harness.set_leader(True)
+        self.harness.charm._on_mongodb_created(mock_event)
+        peer_relation = self.harness.model.get_relation("peer")
+        expected_data = {
+            "mongodb-database": "gunicorn-k8s",
+            "mongodb-username": "someuser",
+            "mongodb-password": "somepassword",
+            "mongodb-endpoints": "someendpoint",
+        }
+        self.assertEqual(peer_relation.data[self.harness.charm.app], expected_data)
+
     def test_check_juju_config(self):
         """Check the required juju settings."""
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
