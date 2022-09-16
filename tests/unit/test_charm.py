@@ -39,13 +39,14 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # We'll only test the case where _stored already
         # has content. _stored being empty is basically tested
         # by all the other functions
-
-        with patch('test_charm.GunicornK8sCharm._stored') as mock_stored:
-            with patch('pgsql.PostgreSQLClient'):
-                with patch('test_charm.GunicornK8sCharm.on'):
-                    mock_stored.reldata = {'pg': 'foo'}
-                    c = GunicornK8sCharm(MagicMock())
-                    self.assertEqual(c._stored.reldata, mock_stored.reldata)
+        with patch("charm.GunicornK8sCharm.__init__") as mock_init:
+            with patch('test_charm.GunicornK8sCharm._stored') as mock_stored:
+                with patch('pgsql.PostgreSQLClient'):
+                    with patch('test_charm.GunicornK8sCharm.on'):
+                        mock_stored.reldata = {'pg': 'foo'}
+                        mock_init.return_value = None
+                        c = GunicornK8sCharm(MagicMock())
+                        self.assertEqual(c._stored.reldata, mock_stored.reldata)
 
     def test_on_database_relation_joined_unit_is_leader(self):
         """Test the _on_database_relation_joined function."""

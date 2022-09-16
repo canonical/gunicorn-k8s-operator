@@ -32,6 +32,7 @@ CONTAINER_NAME = yaml.full_load(open('metadata.yaml', 'r')).get('name').replace(
 class GunicornK8sCharm(CharmBase):
     _stored = StoredState()
     _log_path = "/var/log/gunicorn.log"
+
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -49,9 +50,7 @@ class GunicornK8sCharm(CharmBase):
         self._logging = LogProxyConsumer(self, relation_name="logging", log_files=[self._log_path])
 
         # Provide grafana dashboards over a relation interface
-        self._grafana_dashboards = GrafanaDashboardProvider(
-            self, relation_name="grafana-dashboard"
-        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self, relation_name="grafana-dashboard")
 
         self.ingress = IngressRequires(
             self,
