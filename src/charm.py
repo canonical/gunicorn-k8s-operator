@@ -64,14 +64,16 @@ class GunicornK8sCharm(CharmBase):
         """Handle the peer relation changed event."""
         # Get data for our MongoDB relation if a DB has been created.
         if "mongodb-database" in event.relation.data[self.app]:
-            if not "mongodb" in self._stored.reldata:
+            if "mongodb" not in self._stored.reldata:
                 self._stored.reldata["mongodb"] = {}
-            self._stored.reldata["mongodb"].update({
-                "database": event.relation.data[self.app]["mongodb-database"],
-                "username": event.relation.data[self.app]["mongodb-username"],
-                "password": event.relation.data[self.app]["mongodb-password"],
-                "endpoints": event.relation.data[self.app]["mongodb-endpoints"],
-            })
+            self._stored.reldata["mongodb"].update(
+                {
+                    "database": event.relation.data[self.app]["mongodb-database"],
+                    "username": event.relation.data[self.app]["mongodb-username"],
+                    "password": event.relation.data[self.app]["mongodb-password"],
+                    "endpoints": event.relation.data[self.app]["mongodb-endpoints"],
+                }
+            )
         else:
             # Remove any data related to MongoDB.
             self._stored.reldata.pop("mongodb-database", None)
