@@ -17,6 +17,10 @@ resources:
     type: oci-image
     description: Docker image for gunicorn to run
 
+peers:
+  peer:
+    interface: peer
+
 requires:
   pg:
     interface: pgsql
