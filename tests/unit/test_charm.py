@@ -180,7 +180,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             "password": "somepassword",
             "endpoints": "someendpoint",
         }
-        peer_relation_id = self.harness.add_relation("peer", self.harness.charm.app.name)
+        self.harness.add_relation("peer", self.harness.charm.app.name)
         mock_event = MagicMock()
         mock_event.app = self.harness.charm.app
         mock_event.relation.data = {
@@ -194,7 +194,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         """Test mongodb data added to stored state if in peer relation."""
         # Confirm we start with no MongoDB data in stored state.
         self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
-        peer_relation_id = self.harness.add_relation("peer", self.harness.charm.app.name)
+        self.harness.add_relation("peer", self.harness.charm.app.name)
         mock_event = MagicMock()
         mock_event.app = self.harness.charm.app
         mock_event.relation.data = {
@@ -227,7 +227,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
             "password": "otherpassword",
             "endpoints": "otherendpoint",
         }
-        peer_relation_id = self.harness.add_relation("peer", self.harness.charm.app.name)
+        self.harness.add_relation("peer", self.harness.charm.app.name)
         mock_event = MagicMock()
         mock_event.app = self.harness.charm.app
         mock_event.relation.data = {
