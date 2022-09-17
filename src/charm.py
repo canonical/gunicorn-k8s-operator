@@ -76,10 +76,7 @@ class GunicornK8sCharm(CharmBase):
             )
         else:
             # Remove any data related to MongoDB.
-            self._stored.reldata.pop("mongodb-database", None)
-            self._stored.reldata.pop("mongodb-username", None)
-            self._stored.reldata.pop("mongodb-password", None)
-            self._stored.reldata.pop("mongodb-endpoints", None)
+            self._stored.reldata.pop("mongodb", None)
         self._configure_workload(event)
 
     def _on_mongodb_created(self, event: DatabaseCreatedEvent) -> None:
