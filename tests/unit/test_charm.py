@@ -135,7 +135,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_on_mongodb_created_not_leader(self):
         """Test the _on_mongodb_created function as non-leader."""
-
         mock_event = MagicMock()
         mock_event.username = "someuser"
         mock_event.password = "somepassword"
@@ -152,8 +151,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(peer_relation.data[self.harness.charm.app], {})
 
     def test_on_mongodb_created_leader(self):
-        """Test the _on_mongodb_created function as non-leader."""
-
+        """Test the _on_mongodb_created function as leader."""
         mock_event = MagicMock()
         mock_event.username = "someuser"
         mock_event.password = "somepassword"
