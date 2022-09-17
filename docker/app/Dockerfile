@@ -9,4 +9,4 @@ ENV APP_WSGI app:app
 ENV APP_NAME my-awesome-app
 
 WORKDIR /srv/gunicorn/
-COPY app .
+COPY ./docker/app/app .
