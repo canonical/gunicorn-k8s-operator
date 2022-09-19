@@ -39,8 +39,10 @@ class GunicornK8sCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
 
-        self.mongodb = DatabaseRequires(self, relation_name="mongodb-client", database_name=self.app.name)
-        self.framework.observe(self.mongodb.on.database_created, self._on_mongodb_created)
+        self.mongodb = DatabaseRequires(self, relation_name="mongodb_client", database_name=self.app.name)
+        self.framework.observe(self.mongodb.on.database_created, self._on_mongodb_client_relation_changed)
+        self.framework.observe(self.on.mongodb_client_relation_changed, self._on_mongodb_client_relation_changed)
+        self.framework.observe(self.on.mongodb_client_relation_joined, self._on_mongodb_client_relation_changed)
 
         self.ingress = IngressRequires(
             self,
@@ -57,38 +59,12 @@ class GunicornK8sCharm(CharmBase):
 
         self._init_postgresql_relation()
 
-        self.framework.observe(self.on["peer"].relation_changed, self._on_peer_relation_changed)
-        self.framework.observe(self.on["peer"].relation_joined, self._on_peer_relation_changed)
-
-    def _on_peer_relation_changed(self, event: ops.framework.EventBase) -> None:
-        """Handle the peer relation changed event."""
-        # Get data for our MongoDB relation if a DB has been created.
-        if "mongodb-database" in event.relation.data[self.app]:
-            if "mongodb" not in self._stored.reldata:
-                self._stored.reldata["mongodb"] = {}
-            self._stored.reldata["mongodb"].update(
-                {
-                    "database": event.relation.data[self.app]["mongodb-database"],
-                    "username": event.relation.data[self.app]["mongodb-username"],
-                    "password": event.relation.data[self.app]["mongodb-password"],
-                    "endpoints": event.relation.data[self.app]["mongodb-endpoints"],
-                }
-            )
-        else:
-            # Remove any data related to MongoDB.
-            self._stored.reldata.pop("mongodb", None)
+    def _on_mongodb_client_relation_changed(self, event: ops.framework.EventBase) -> None:
+        """Handle the on MongoDB relation changed event."""
+        if "mongodb" not in self._stored.reldata:
+            self._stored.reldata["mongodb"] = {}
+        self._stored.reldata["mongodb"].update(self.mongodb.fetch_relation_data()[event.relation.id])
         self._configure_workload(event)
-
-    def _on_mongodb_created(self, event: DatabaseCreatedEvent) -> None:
-        """Handle the on MongoDB created event."""
-        if self.model.unit.is_leader():
-            # Add data to peer relation if it doesn't exist there. We can only
-            # store string data in the relation itself.
-            peer_relation = self.model.get_relation("peer")
-            peer_relation.data[self.app]["mongodb-database"] = self.app.name
-            peer_relation.data[self.app]["mongodb-username"] = event.username
-            peer_relation.data[self.app]["mongodb-password"] = event.password
-            peer_relation.data[self.app]["mongodb-endpoints"] = event.endpoints
 
     def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate pebble config."""

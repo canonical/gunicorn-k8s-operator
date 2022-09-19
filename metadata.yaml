@@ -17,10 +17,6 @@ resources:
     type: oci-image
     description: Docker image for gunicorn to run
 
-peers:
-  peer:
-    interface: peer
-
 requires:
   pg:
     interface: pgsql
@@ -30,5 +26,5 @@ requires:
     limit: 1
   ingress:
     interface: ingress
-  mongodb-client:
-    interface: mongodb-client
+  mongodb_client:
+    interface: mongodb_client

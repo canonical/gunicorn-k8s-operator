@@ -133,79 +133,24 @@ class TestGunicornK8sCharm(unittest.TestCase):
         reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
-    def test_on_mongodb_created_not_leader(self):
-        """Test the _on_mongodb_created function as non-leader."""
-        mock_event = MagicMock()
-        mock_event.username = "someuser"
-        mock_event.password = "somepassword"
-        mock_event.endpoints = "someendpoint"
+    def test_on_mongodb_client_relation_changed(self):
+        """Test the _on_mongodb_client_relation_changed function."""
+        class FakeMongoDB(object):
+            def fetch_relation_data(self):
+                return {
+                    1: {
+                        "database": "gunicorn-k8s",
+                        "username": "someusername",
+                        "password": "somepassword",
+                        "endpoints": "someendpoint",
+                    }
+                }
 
-        self.harness.disable_hooks()  # we don't want leader-set to fire
-        self.harness.add_relation("peer", self.harness.charm.app.name)
-        self.harness.set_leader(False)
-        self.harness.charm._on_mongodb_created(mock_event)
+        self.harness.charm.mongodb = FakeMongoDB()
 
-        # Confirm there's nothing in our peer relation because we're not the
-        # leader.
-        peer_relation = self.harness.model.get_relation("peer")
-        self.assertEqual(peer_relation.data[self.harness.charm.app], {})
-
-    def test_on_mongodb_created_leader(self):
-        """Test the _on_mongodb_created function as leader."""
-        mock_event = MagicMock()
-        mock_event.username = "someuser"
-        mock_event.password = "somepassword"
-        mock_event.endpoints = "someendpoint"
-
-        self.harness.disable_hooks()  # we don't want leader-set to fire
-        self.harness.add_relation("peer", self.harness.charm.app.name)
-        self.harness.set_leader(True)
-        self.harness.charm._on_mongodb_created(mock_event)
-        peer_relation = self.harness.model.get_relation("peer")
+        # Test nothing in stored state related to MongoDB.
+        self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
         expected_data = {
-            "mongodb-database": "gunicorn-k8s",
-            "mongodb-username": "someuser",
-            "mongodb-password": "somepassword",
-            "mongodb-endpoints": "someendpoint",
-        }
-        self.assertEqual(peer_relation.data[self.harness.charm.app], expected_data)
-
-    def test_on_peer_relation_changed_no_mongo_database(self):
-        """Test removing mongodb data from reldata if not in peer relation."""
-        self.harness.charm._stored.reldata["mongodb"] = {
-            "database": "gunicorn-k8s",
-            "username": "someusername",
-            "password": "somepassword",
-            "endpoints": "someendpoint",
-        }
-        self.harness.add_relation("peer", self.harness.charm.app.name)
-        mock_event = MagicMock()
-        mock_event.app = self.harness.charm.app
-        mock_event.relation.data = {
-            self.harness.charm.app: {},
-        }
-        self.harness.charm._on_peer_relation_changed(mock_event)
-        # Confirm we no longer have any MongoDB data in stored state.
-        self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
-
-    def test_on_peer_relation_changed_no_mongo_stored(self):
-        """Test mongodb data added to stored state if in peer relation."""
-        # Confirm we start with no MongoDB data in stored state.
-        self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
-        self.harness.add_relation("peer", self.harness.charm.app.name)
-        mock_event = MagicMock()
-        mock_event.app = self.harness.charm.app
-        mock_event.relation.data = {
-            self.harness.charm.app: {
-                "mongodb-database": "gunicorn-k8s",
-                "mongodb-username": "someusername",
-                "mongodb-password": "somepassword",
-                "mongodb-endpoints": "someendpoint",
-            },
-        }
-        self.harness.charm._on_peer_relation_changed(mock_event)
-        # Confirm we now have expected MongoDB data in stored state.
-        expected_reldata = {
             "mongodb": {
                 "database": "gunicorn-k8s",
                 "username": "someusername",
@@ -214,40 +159,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
             },
             "pg": {},
         }
-        self.assertEqual(self.harness.charm._stored.reldata, expected_reldata)
-
-    def test_on_peer_relation_changed_mongo_stored(self):
-        """Test mongodb data updated in stored state if in peer relation."""
-        # Add some MongoDB data to stored state.
-        self.harness.charm._stored.reldata["mongodb"] = {
-            "database": "gunicorn-k8s",
-            "username": "otherusername",
-            "password": "otherpassword",
-            "endpoints": "otherendpoint",
-        }
-        self.harness.add_relation("peer", self.harness.charm.app.name)
         mock_event = MagicMock()
-        mock_event.app = self.harness.charm.app
-        mock_event.relation.data = {
-            self.harness.charm.app: {
-                "mongodb-database": "gunicorn-k8s",
-                "mongodb-username": "someusername",
-                "mongodb-password": "somepassword",
-                "mongodb-endpoints": "someendpoint",
-            },
-        }
-        self.harness.charm._on_peer_relation_changed(mock_event)
-        # Confirm we have updated MongoDB data in stored state.
-        expected_reldata = {
-            "mongodb": {
-                "database": "gunicorn-k8s",
-                "username": "someusername",
-                "password": "somepassword",
-                "endpoints": "someendpoint",
-            },
-            "pg": {},
-        }
-        self.assertEqual(self.harness.charm._stored.reldata, expected_reldata)
+        mock_event.relation.id = 1
+        self.harness.charm._on_mongodb_client_relation_changed(mock_event)
+        self.assertEqual(self.harness.charm._stored.reldata, expected_data)
+
+        # And now test it again to confirm what happens if mongodb is already
+        # in StoredState.
+        self.harness.charm._on_mongodb_client_relation_changed(mock_event)
+        self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
