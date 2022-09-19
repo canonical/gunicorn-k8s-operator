@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 from jinja2 import Environment, BaseLoader, meta
+import copy
 import logging
 import yaml
 
@@ -60,8 +61,11 @@ class GunicornK8sCharm(CharmBase):
         """Handle the on MongoDB relation changed event."""
         if "mongodb" not in self._stored.reldata:
             self._stored.reldata["mongodb"] = {}
+
+        initial = dict(self._stored.reldata["mongodb"])
         self._stored.reldata["mongodb"].update(self.mongodb.fetch_relation_data()[event.relation.id])
-        self._configure_workload(event)
+        if initial != self._stored.reldata["mongodb"]:
+            self._configure_workload(event)
 
     def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate pebble config."""
