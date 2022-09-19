@@ -149,7 +149,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         self.harness.charm.mongodb = FakeMongoDB()
 
-        # Test nothing in stored state related to MongoDB.
+        # Test nothing in StoredState related to MongoDB.
         self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
         expected_data = {
             "mongodb": {
@@ -162,13 +162,19 @@ class TestGunicornK8sCharm(unittest.TestCase):
         }
         mock_event = MagicMock()
         mock_event.relation.id = 1
-        self.harness.charm._on_mongodb_client_relation_changed(mock_event)
-        self.assertEqual(self.harness.charm._stored.reldata, expected_data)
+        with patch('test_charm.GunicornK8sCharm._configure_workload') as mock_configure_workload:
+            self.harness.charm._on_mongodb_client_relation_changed(mock_event)
+            # Confirm we're configuring the workload because state has changed.
+            mock_configure_workload.assert_called_once()
+            self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
-        # And now test it again to confirm what happens if mongodb is already
-        # in StoredState.
-        self.harness.charm._on_mongodb_client_relation_changed(mock_event)
-        self.assertEqual(self.harness.charm._stored.reldata, expected_data)
+            # And now test it again to confirm what happens if mongodb is already
+            # in StoredState.
+            self.harness.charm._on_mongodb_client_relation_changed(mock_event)
+            # Confirm configure workload has still only been called once, as
+            # StoredState related to MongoDB hasn't changed.
+            mock_configure_workload.assert_called_once()
+            self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
     def test_check_juju_config(self):
         """Check the required juju settings."""
