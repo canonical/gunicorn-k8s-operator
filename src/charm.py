@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 from jinja2 import Environment, BaseLoader, meta
-import copy
 import logging
 import yaml
 
