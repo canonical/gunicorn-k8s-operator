@@ -6,10 +6,7 @@ from jinja2 import Environment, BaseLoader, meta
 import logging
 import yaml
 
-from charms.data_platform_libs.v0.database_requires import (
-    DatabaseCreatedEvent,
-    DatabaseRequires,
-)
+from charms.data_platform_libs.v0.database_requires import DatabaseRequires
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
 from ops.framework import StoredState

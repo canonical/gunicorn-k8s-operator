@@ -135,6 +135,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
     def test_on_mongodb_client_relation_changed(self):
         """Test the _on_mongodb_client_relation_changed function."""
+
         class FakeMongoDB(object):
             def fetch_relation_data(self):
                 return {
