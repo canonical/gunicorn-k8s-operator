@@ -8,6 +8,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
     assert value is not None, "please specify the --gunicorn-image command line option"
     return value
 
+
 @pytest.fixture(scope="module")
 def statsd_exporter_image(pytestconfig: pytest.Config):
     """Get the statsd exporter image."""
