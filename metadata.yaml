@@ -11,11 +11,19 @@ summary: |
 containers:
   gunicorn:
     resource: gunicorn-image
+  statsd-prometheus-exporter:
+    resource: statsd-prometheus-exporter-image
 
 resources:
   gunicorn-image:
     type: oci-image
     description: Docker image for gunicorn to run
+  statsd-prometheus-exporter-image:
+    type: oci-image
+    description: Prometheus exporter for statsd data
+    auto-fetch: true
+    upstream-source: prom/statsd-exporter
+  
 
 provides:
   metrics-endpoint:

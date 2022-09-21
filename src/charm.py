@@ -47,7 +47,7 @@ class GunicornK8sCharm(CharmBase):
         )
 
         # Enable log forwarding for Loki and other charms that implement loki_push_api
-        self._logging = LogProxyConsumer(self, relation_name="logging", log_files=[self._log_path])
+        self._logging = LogProxyConsumer(self, relation_name="logging", log_files=[self._log_path], container_name="gunicorn")
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(self, relation_name="grafana-dashboard")
@@ -78,6 +78,13 @@ class GunicornK8sCharm(CharmBase):
                     "summary": "gunicorn service",
                     "command": "/srv/gunicorn/run",
                     "startup": "enabled",
+                },
+                "statsd-prometheus-exporter": {
+                    "override": "replace",
+                    "summary": "statsd exporter service",
+                    "user": "nobody",
+                    "command": "/bin/statsd_exporter",
+                    "startup": "enabled"
                 }
             },
             "checks": {

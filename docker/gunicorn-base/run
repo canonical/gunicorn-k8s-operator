@@ -15,4 +15,6 @@ exec gunicorn $APP_WSGI \
   --proxy-allow-from='*' \
   --log-file=${LOGFILE:--} \
   --access-logfile=${ACCESS_LOGFILE:--} \
-  --access-logformat="${ACCESS_LOGFORMAT:-%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s}"
+  --access-logformat="${ACCESS_LOGFORMAT:-%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s}" \
+  --statsd-host=localhost:9125 \
+  --statsd-prefix=statsd_data

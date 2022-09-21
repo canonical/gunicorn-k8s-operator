@@ -1,4 +1,2 @@
-lightkube
-lightkube-models
 ops
 ops-lib-pgsql
