@@ -28,6 +28,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness = testing.Harness(GunicornK8sCharm)
         self.harness.begin()
         self.harness.add_oci_resource('gunicorn-image')
+        self.harness.add_oci_resource('statsd-prometheus-exporter-image')
 
     def tearDown(self):
         """Cleanup the harness."""

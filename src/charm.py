@@ -47,7 +47,9 @@ class GunicornK8sCharm(CharmBase):
         )
 
         # Enable log forwarding for Loki and other charms that implement loki_push_api
-        self._logging = LogProxyConsumer(self, relation_name="logging", log_files=[self._log_path], container_name="gunicorn")
+        self._logging = LogProxyConsumer(
+            self, relation_name="logging", log_files=[self._log_path], container_name="gunicorn"
+        )
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(self, relation_name="grafana-dashboard")
@@ -68,7 +70,7 @@ class GunicornK8sCharm(CharmBase):
         self._init_postgresql_relation()
 
     def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
-        """Generate pebble config."""
+        """Generate gunicorn's container pebble config."""
         pebble_config = {
             "summary": "gunicorn layer",
             "description": "gunicorn layer",
@@ -78,13 +80,6 @@ class GunicornK8sCharm(CharmBase):
                     "summary": "gunicorn service",
                     "command": "/srv/gunicorn/run",
                     "startup": "enabled",
-                },
-                "statsd-prometheus-exporter": {
-                    "override": "replace",
-                    "summary": "statsd exporter service",
-                    "user": "nobody",
-                    "command": "/bin/statsd_exporter",
-                    "startup": "enabled"
                 }
             },
             "checks": {
@@ -119,6 +114,36 @@ class GunicornK8sCharm(CharmBase):
             pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
         return pebble_config
 
+    def _get_statsd_pebble_config(self, event: ops.framework.EventBase) -> dict:
+        """Generate statsd exporter pebble config."""
+        pebble_config = {
+            "summary": "gunicorn layer",
+            "description": "gunicorn layer",
+            "services": {
+                "statsd-prometheus-exporter": {
+                    "override": "replace",
+                    "summary": "statsd exporter service",
+                    "user": "nobody",
+                    "command": "/bin/statsd_exporter",
+                    "startup": "enabled",
+                }
+            },
+            "checks": {
+                "container-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": "http://localhost:9102/metrics"},
+                },
+            },
+        }
+
+        juju_conf = self._check_juju_config()
+        if juju_conf:
+            self.unit.status = BlockedStatus(str(juju_conf))
+            return {}
+
+        return pebble_config
+
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
         """Handle the config changed event."""
 
@@ -132,6 +157,7 @@ class GunicornK8sCharm(CharmBase):
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""
         pebble_config = self._get_pebble_config(event)
+        statsd_pebble_config = self._get_statsd_pebble_config(event)
         if not pebble_config:
             # Charm will be in blocked status.
             return
@@ -140,8 +166,9 @@ class GunicornK8sCharm(CharmBase):
         self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
 
         container = self.unit.get_container(CONTAINER_NAME)
+        statsd_container = self.unit.get_container("statsd-prometheus-exporter")
         # pebble may not be ready, in which case we just return
-        if not container.can_connect():
+        if (not container.can_connect()) or (not statsd_container.can_connect()):
             self.unit.status = MaintenanceStatus('waiting for pebble to start')
             logger.debug('waiting for pebble to start')
             return
@@ -149,6 +176,8 @@ class GunicornK8sCharm(CharmBase):
         logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
         container.add_layer(CONTAINER_NAME, pebble_config, combine=True)
         container.pebble.replan_services()
+        statsd_container.add_layer("statsd-prometheus-exporter", statsd_pebble_config, combine=True)
+        statsd_container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
 
