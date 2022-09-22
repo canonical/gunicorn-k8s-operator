@@ -1,4 +1,3 @@
 [tool.black]
-fail_under = 85
 skip-string-normalization = true
 line-length = 120
