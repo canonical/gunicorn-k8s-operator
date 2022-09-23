@@ -6,6 +6,7 @@ from jinja2 import Environment, BaseLoader, meta
 import logging
 import yaml
 
+from charms.data_platform_libs.v0.database_requires import DatabaseRequires
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
 from ops.framework import StoredState
@@ -35,6 +36,15 @@ class GunicornK8sCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
 
+        self.mongodb = DatabaseRequires(self, relation_name="mongodb_client", database_name=self.app.name)
+        # The `database_created` event is fired whenever a new unit is added to
+        # this application, even if the database has already been created
+        # (because a previous unit requested it). Responding to the following
+        # two events means we don't need to handle `relation-changed` or
+        # `relation-joined` events.
+        self.framework.observe(self.mongodb.on.database_created, self._mongodb_client_relation_changed)
+        self.framework.observe(self.mongodb.on.endpoints_changed, self._mongodb_client_relation_changed)
+
         self.ingress = IngressRequires(
             self,
             {
@@ -49,6 +59,16 @@ class GunicornK8sCharm(CharmBase):
         )
 
         self._init_postgresql_relation()
+
+    def _mongodb_client_relation_changed(self, event: ops.framework.EventBase) -> None:
+        """Handle changes to the MongoDB relation."""
+        if "mongodb" not in self._stored.reldata:
+            self._stored.reldata["mongodb"] = {}
+
+        initial = dict(self._stored.reldata["mongodb"])
+        self._stored.reldata["mongodb"].update(self.mongodb.fetch_relation_data()[event.relation.id])
+        if initial != self._stored.reldata["mongodb"]:
+            self._configure_workload(event)
 
     def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate pebble config."""

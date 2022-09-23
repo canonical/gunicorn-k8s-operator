@@ -133,6 +133,49 @@ class TestGunicornK8sCharm(unittest.TestCase):
         reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
 
+    def test_on_mongodb_client_relation_changed(self):
+        """Test the _on_mongodb_client_relation_changed function."""
+
+        class FakeMongoDB(object):
+            def fetch_relation_data(self):
+                return {
+                    1: {
+                        "database": "gunicorn-k8s",
+                        "username": "someusername",
+                        "password": "somepassword",
+                        "endpoints": "someendpoint",
+                    }
+                }
+
+        self.harness.charm.mongodb = FakeMongoDB()
+
+        # Test nothing in StoredState related to MongoDB.
+        self.assertEqual(self.harness.charm._stored.reldata, {"pg": {}})
+        expected_data = {
+            "mongodb": {
+                "database": "gunicorn-k8s",
+                "username": "someusername",
+                "password": "somepassword",
+                "endpoints": "someendpoint",
+            },
+            "pg": {},
+        }
+        mock_event = MagicMock()
+        mock_event.relation.id = 1
+        with patch('test_charm.GunicornK8sCharm._configure_workload') as mock_configure_workload:
+            self.harness.charm._mongodb_client_relation_changed(mock_event)
+            # Confirm we're configuring the workload because state has changed.
+            mock_configure_workload.assert_called_once()
+            self.assertEqual(self.harness.charm._stored.reldata, expected_data)
+
+            # And now test it again to confirm what happens if mongodb is already
+            # in StoredState.
+            self.harness.charm._mongodb_client_relation_changed(mock_event)
+            # Confirm configure workload has still only been called once, as
+            # StoredState related to MongoDB hasn't changed.
+            mock_configure_workload.assert_called_once()
+            self.assertEqual(self.harness.charm._stored.reldata, expected_data)
+
     def test_check_juju_config(self):
         """Check the required juju settings."""
         self.harness.update_config(JUJU_DEFAULT_CONFIG)

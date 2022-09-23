@@ -26,3 +26,6 @@ requires:
     limit: 1
   ingress:
     interface: ingress
+  mongodb_client:
+    interface: mongodb_client
+    limit: 1
