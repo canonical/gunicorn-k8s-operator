@@ -28,3 +28,4 @@ requires:
     interface: ingress
   mongodb_client:
     interface: mongodb_client
+    limit: 1
