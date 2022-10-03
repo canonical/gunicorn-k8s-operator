@@ -9,6 +9,7 @@ import yaml
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.data_platform_libs.v0.database_requires import DatabaseRequires
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 import ops
 from ops.framework import StoredState
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_JUJU_CONFIG = ['external_hostname']
 JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
-CONTAINER_NAME = yaml.full_load(open('metadata.yaml', 'r')).get('name').replace("-k8s", "")
 
 
 class GunicornK8sCharm(CharmBase):
@@ -53,6 +53,14 @@ class GunicornK8sCharm(CharmBase):
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(self, relation_name="grafana-dashboard")
+        self.mongodb = DatabaseRequires(self, relation_name="mongodb_client", database_name=self.app.name)
+        # The `database_created` event is fired whenever a new unit is added to
+        # this application, even if the database has already been created
+        # (because a previous unit requested it). Responding to the following
+        # two events means we don't need to handle `relation-changed` or
+        # `relation-joined` events.
+        self.framework.observe(self.mongodb.on.database_created, self._mongodb_client_relation_changed)
+        self.framework.observe(self.mongodb.on.endpoints_changed, self._mongodb_client_relation_changed)
 
         self.ingress = IngressRequires(
             self,
@@ -69,7 +77,17 @@ class GunicornK8sCharm(CharmBase):
 
         self._init_postgresql_relation()
 
-    def _get_pebble_config(self, event: ops.framework.EventBase) -> dict:
+    def _mongodb_client_relation_changed(self, event: ops.framework.EventBase) -> None:
+        """Handle changes to the MongoDB relation."""
+        if "mongodb" not in self._stored.reldata:
+            self._stored.reldata["mongodb"] = {}
+
+        initial = dict(self._stored.reldata["mongodb"])
+        self._stored.reldata["mongodb"].update(self.mongodb.fetch_relation_data()[event.relation.id])
+        if initial != self._stored.reldata["mongodb"]:
+            self._configure_workload(event)
+
+    def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate gunicorn's container pebble config."""
         pebble_config = {
             "summary": "gunicorn layer",
@@ -105,11 +123,6 @@ class GunicornK8sCharm(CharmBase):
             event.defer()
             return {}
 
-        juju_conf = self._check_juju_config()
-        if juju_conf:
-            self.unit.status = BlockedStatus(str(juju_conf))
-            return {}
-
         if pod_env_config:
             pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
         return pebble_config
@@ -117,8 +130,8 @@ class GunicornK8sCharm(CharmBase):
     def _get_statsd_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate statsd exporter pebble config."""
         pebble_config = {
-            "summary": "gunicorn layer",
-            "description": "gunicorn layer",
+            "summary": "statsd exporter layer",
+            "description": "statsd exporter layer",
             "services": {
                 "statsd-prometheus-exporter": {
                     "override": "replace",
@@ -137,11 +150,6 @@ class GunicornK8sCharm(CharmBase):
             },
         }
 
-        juju_conf = self._check_juju_config()
-        if juju_conf:
-            self.unit.status = BlockedStatus(str(juju_conf))
-            return {}
-
         return pebble_config
 
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
@@ -156,16 +164,20 @@ class GunicornK8sCharm(CharmBase):
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""
-        pebble_config = self._get_pebble_config(event)
+        pebble_config = self._get_gunicorn_pebble_config(event)
         statsd_pebble_config = self._get_statsd_pebble_config(event)
         if not pebble_config:
             # Charm will be in blocked status.
             return
+        juju_conf = self._check_juju_config()
+        if juju_conf:
+            self.unit.status = BlockedStatus(str(juju_conf))
+            return {}
 
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
 
-        container = self.unit.get_container(CONTAINER_NAME)
+        container = self.unit.get_container("gunicorn")
         statsd_container = self.unit.get_container("statsd-prometheus-exporter")
         # pebble may not be ready, in which case we just return
         if (not container.can_connect()) or (not statsd_container.can_connect()):
@@ -174,7 +186,7 @@ class GunicornK8sCharm(CharmBase):
             return
 
         logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
-        container.add_layer(CONTAINER_NAME, pebble_config, combine=True)
+        container.add_layer("gunicorn", pebble_config, combine=True)
         container.pebble.replan_services()
         statsd_container.add_layer("statsd-prometheus-exporter", statsd_pebble_config, combine=True)
         statsd_container.pebble.replan_services()

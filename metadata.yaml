@@ -42,4 +42,6 @@ requires:
     interface: ingress
   logging:
     interface: loki_push_api
+  mongodb_client:
+    interface: mongodb_client
     limit: 1
