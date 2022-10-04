@@ -25,8 +25,8 @@ import pgsql
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_JUJU_CONFIG = ['external_hostname']
-JUJU_CONFIG_YAML_DICT_ITEMS = ['environment']
+REQUIRED_JUJU_CONFIG = ["external_hostname"]
+JUJU_CONFIG_YAML_DICT_ITEMS = ["environment"]
 
 
 class GunicornK8sCharm(CharmBase):
@@ -52,15 +52,23 @@ class GunicornK8sCharm(CharmBase):
         )
 
         # Provide grafana dashboards over a relation interface
-        self._grafana_dashboards = GrafanaDashboardProvider(self, relation_name="grafana-dashboard")
-        self.mongodb = DatabaseRequires(self, relation_name="mongodb_client", database_name=self.app.name)
+        self._grafana_dashboards = GrafanaDashboardProvider(
+            self, relation_name="grafana-dashboard"
+        )
+        self.mongodb = DatabaseRequires(
+            self, relation_name="mongodb_client", database_name=self.app.name
+        )
         # The `database_created` event is fired whenever a new unit is added to
         # this application, even if the database has already been created
         # (because a previous unit requested it). Responding to the following
         # two events means we don't need to handle `relation-changed` or
         # `relation-joined` events.
-        self.framework.observe(self.mongodb.on.database_created, self._mongodb_client_relation_changed)
-        self.framework.observe(self.mongodb.on.endpoints_changed, self._mongodb_client_relation_changed)
+        self.framework.observe(
+            self.mongodb.on.database_created, self._mongodb_client_relation_changed
+        )
+        self.framework.observe(
+            self.mongodb.on.endpoints_changed, self._mongodb_client_relation_changed
+        )
 
         self.ingress = IngressRequires(
             self,
@@ -83,7 +91,9 @@ class GunicornK8sCharm(CharmBase):
             self._stored.reldata["mongodb"] = {}
 
         initial = dict(self._stored.reldata["mongodb"])
-        self._stored.reldata["mongodb"].update(self.mongodb.fetch_relation_data()[event.relation.id])
+        self._stored.reldata["mongodb"].update(
+            self.mongodb.fetch_relation_data()[event.relation.id]
+        )
         if initial != self._stored.reldata["mongodb"]:
             self._configure_workload(event)
 
@@ -116,10 +126,12 @@ class GunicornK8sCharm(CharmBase):
                 "Error getting pod_env_config: %s",
                 "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\"",
             )
-            self.unit.status = BlockedStatus('Error getting pod_env_config')
+            self.unit.status = BlockedStatus("Error getting pod_env_config")
             return {}
         elif type(pod_env_config) is set:
-            self.unit.status = BlockedStatus('Waiting for {} relation(s)'.format(", ".join(sorted(pod_env_config))))
+            self.unit.status = BlockedStatus(
+                "Waiting for {} relation(s)".format(", ".join(sorted(pod_env_config)))
+            )
             event.defer()
             return {}
 
@@ -181,24 +193,30 @@ class GunicornK8sCharm(CharmBase):
         statsd_container = self.unit.get_container("statsd-prometheus-exporter")
         # pebble may not be ready, in which case we just return
         if not gunicorn_container.can_connect() or not statsd_container.can_connect():
-            self.unit.status = MaintenanceStatus('waiting for pebble to start')
-            logger.debug('waiting for pebble to start')
+            self.unit.status = MaintenanceStatus("waiting for pebble to start")
+            logger.debug("waiting for pebble to start")
             return
 
-        logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(gunicorn_pebble_config)))
+        logger.debug(
+            "About to add_layer with pebble_config:\n{}".format(yaml.dump(gunicorn_pebble_config))
+        )
         gunicorn_container.add_layer("gunicorn", gunicorn_pebble_config, combine=True)
         gunicorn_container.pebble.replan_services()
-        statsd_container.add_layer("statsd-prometheus-exporter", statsd_pebble_config, combine=True)
+        statsd_container.add_layer(
+            "statsd-prometheus-exporter", statsd_pebble_config, combine=True
+        )
         statsd_container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
 
     def _init_postgresql_relation(self) -> None:
         """Initialization related to the postgresql relation"""
-        if 'pg' not in self._stored.reldata:
-            self._stored.reldata['pg'] = {}
-        self.pg = pgsql.PostgreSQLClient(self, 'pg')
-        self.framework.observe(self.pg.on.database_relation_joined, self._on_database_relation_joined)
+        if "pg" not in self._stored.reldata:
+            self._stored.reldata["pg"] = {}
+        self.pg = pgsql.PostgreSQLClient(self, "pg")
+        self.framework.observe(
+            self.pg.on.database_relation_joined, self._on_database_relation_joined
+        )
         self.framework.observe(self.pg.on.master_changed, self._on_master_changed)
         self.framework.observe(self.pg.on.standby_changed, self._on_standby_changed)
 
@@ -219,8 +237,10 @@ class GunicornK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._stored.reldata['pg']['conn_str'] = None if event.master is None else event.master.conn_str
-        self._stored.reldata['pg']['db_uri'] = None if event.master is None else event.master.uri
+        self._stored.reldata["pg"]["conn_str"] = (
+            None if event.master is None else event.master.conn_str
+        )
+        self._stored.reldata["pg"]["db_uri"] = None if event.master is None else event.master.uri
 
         if event.master is None:
             return
@@ -234,7 +254,7 @@ class GunicornK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._stored.reldata['pg']['ro_uris'] = [c.uri for c in event.standbys]
+        self._stored.reldata["pg"]["ro_uris"] = [c.uri for c in event.standbys]
 
         # TODO: Emit event when we add support for read replicas
 
@@ -283,7 +303,7 @@ class GunicornK8sCharm(CharmBase):
                 if len(rels) > 1:
                     logger.warning(
                         'Multiple relations of type "%s" detected,'
-                        ' using only the first one (id: %s) for relation data.',
+                        " using only the first one (id: %s) for relation data.",
                         rel.name,
                         rel.id,
                     )
@@ -296,7 +316,7 @@ class GunicornK8sCharm(CharmBase):
                     if len(rel.units) > 1:
                         logger.warning(
                             'Multiple units detected in the relation "%s:%s", '
-                            'using only the first one (id: %s) for relation data.',
+                            "using only the first one (id: %s) for relation data.",
                             rel.name,
                             rel.id,
                             u.name,
@@ -336,7 +356,7 @@ class GunicornK8sCharm(CharmBase):
 
         :returns: A dictionary used for envConfig in podspec
         """
-        env = self.model.config['environment']
+        env = self.model.config["environment"]
 
         if not env:
             return {}

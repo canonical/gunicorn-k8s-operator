@@ -41,9 +41,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # has content. _stored being empty is basically tested
         # by all the other functions
         with patch("charm.GunicornK8sCharm.__init__") as mock_init, patch(
-            'test_charm.GunicornK8sCharm._stored'
-        ) as mock_stored, patch('pgsql.PostgreSQLClient'), patch('test_charm.GunicornK8sCharm.on'):
-            mock_stored.reldata = {'pg': 'foo'}
+            "test_charm.GunicornK8sCharm._stored"
+        ) as mock_stored, patch("pgsql.PostgreSQLClient"), patch("test_charm.GunicornK8sCharm.on"):
+            mock_stored.reldata = {"pg": "foo"}
             mock_init.return_value = None
             charm = GunicornK8sCharm(MagicMock())
             self.assertEqual(charm._stored.reldata, mock_stored.reldata)
@@ -93,8 +93,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         r = self.harness.charm._on_master_changed(mock_event)
         reldata = self.harness.charm._stored.reldata
-        self.assertEqual(reldata['pg']['conn_str'], None)
-        self.assertEqual(reldata['pg']['db_uri'], None)
+        self.assertEqual(reldata["pg"]["conn_str"], None)
+        self.assertEqual(reldata["pg"]["db_uri"], None)
         self.assertEqual(r, None)
 
         # Database with master
@@ -102,12 +102,12 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.database = self.harness.charm.app.name
         mock_event.master.conn_str = TEST_PG_CONNSTR
         mock_event.master.uri = TEST_PG_URI
-        with patch('charm.GunicornK8sCharm._on_config_changed') as on_config_changes:
+        with patch("charm.GunicornK8sCharm._on_config_changed") as on_config_changes:
             r = self.harness.charm._on_master_changed(mock_event)
 
             reldata = self.harness.charm._stored.reldata
-            self.assertEqual(reldata['pg']['conn_str'], mock_event.master.conn_str)
-            self.assertEqual(reldata['pg']['db_uri'], mock_event.master.uri)
+            self.assertEqual(reldata["pg"]["conn_str"], mock_event.master.conn_str)
+            self.assertEqual(reldata["pg"]["db_uri"], mock_event.master.uri)
             self.assertEqual(r, None)
             on_config_changes.assert_called_with(mock_event)
 
@@ -132,7 +132,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.charm._on_standby_changed(mock_event)
 
         reldata = self.harness.charm._stored.reldata
-        self.assertEqual(reldata['pg']['ro_uris'], [TEST_PG_URI])
+        self.assertEqual(reldata["pg"]["ro_uris"], [TEST_PG_URI])
 
     def test_on_mongodb_client_relation_changed(self):
         """Test the _on_mongodb_client_relation_changed function."""
@@ -163,7 +163,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         }
         mock_event = MagicMock()
         mock_event.relation.id = 1
-        with patch('test_charm.GunicornK8sCharm._configure_workload') as mock_configure_workload:
+        with patch("test_charm.GunicornK8sCharm._configure_workload") as mock_configure_workload:
             self.harness.charm._mongodb_client_relation_changed(mock_event)
             # Confirm we're configuring the workload because state has changed.
             mock_configure_workload.assert_called_once()
@@ -183,11 +183,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         for scenario, values in TEST_JUJU_CONFIG.items():
             with self.subTest(scenario=scenario):
-                self.harness.update_config(values['config'])
-                if values['expected']:
-                    with self.assertLogs(level='ERROR') as logger:
+                self.harness.update_config(values["config"])
+                if values["expected"]:
+                    with self.assertLogs(level="ERROR") as logger:
                         self.harness.charm._check_juju_config()
-                    self.assertEqual(sorted(logger.output), sorted(values['logger']))
+                    self.assertEqual(sorted(logger.output), sorted(values["logger"]))
                 else:
                     self.assertEqual(self.harness.charm._check_juju_config(), None)
 
@@ -201,8 +201,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         for scenario, values in TEST_RENDER_TEMPLATE.items():
             with self.subTest(scenario=scenario):
-                r = self.harness.charm._render_template(values['tmpl'], values['ctx'])
-                self.assertEqual(r, values['expected'])
+                r = self.harness.charm._render_template(values["tmpl"], values["ctx"])
+                self.assertEqual(r, values["expected"])
 
     def test_get_context_from_relations(self):
         """Test the _get_context_from_relations function."""
@@ -211,37 +211,37 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         # Set up PG "special case" relation data
         reldata = self.harness.charm._stored.reldata
-        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
+        reldata["pg"] = {"conn_str": TEST_PG_CONNSTR, "db_uri": TEST_PG_URI}
 
         # Set up PG "raw" relation data
-        relation_id = self.harness.add_relation('pg', 'postgresql')
-        self.harness.add_relation_unit(relation_id, 'postgresql/0')
-        self.harness.update_relation_data(relation_id, 'postgresql/0', {'version': '10'})
+        relation_id = self.harness.add_relation("pg", "postgresql")
+        self.harness.add_relation_unit(relation_id, "postgresql/0")
+        self.harness.update_relation_data(relation_id, "postgresql/0", {"version": "10"})
 
         # Set up random relation, with 2 units
-        relation_id = self.harness.add_relation('myrel', 'myapp')
-        self.harness.add_relation_unit(relation_id, 'myapp/0')
-        self.harness.add_relation_unit(relation_id, 'myapp/1')
-        self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
-        self.harness.update_relation_data(relation_id, 'myapp/1', {'thing': 'blo'})
+        relation_id = self.harness.add_relation("myrel", "myapp")
+        self.harness.add_relation_unit(relation_id, "myapp/0")
+        self.harness.add_relation_unit(relation_id, "myapp/1")
+        self.harness.update_relation_data(relation_id, "myapp/0", {"thing": "bli"})
+        self.harness.update_relation_data(relation_id, "myapp/1", {"thing": "blo"})
 
         # Set up same relation but with a different app
-        relation_id = self.harness.add_relation('myrel', 'myapp2')
-        self.harness.add_relation_unit(relation_id, 'myapp2/0')
-        self.harness.update_relation_data(relation_id, 'myapp2/0', {'thing': 'blu'})
+        relation_id = self.harness.add_relation("myrel", "myapp2")
+        self.harness.add_relation_unit(relation_id, "myapp2/0")
+        self.harness.update_relation_data(relation_id, "myapp2/0", {"thing": "blu"})
 
         # Set up random relation, no unit (can happen during relation init)
-        relation_id = self.harness.add_relation('myrel2', 'myapp2')
+        relation_id = self.harness.add_relation("myrel2", "myapp2")
 
         expected_ret = {
-            'pg': {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI, 'version': '10'},
-            'myrel': {'thing': 'bli'},
+            "pg": {"conn_str": TEST_PG_CONNSTR, "db_uri": TEST_PG_URI, "version": "10"},
+            "myrel": {"thing": "bli"},
         }
         expected_logger = [
             'WARNING:charm:Multiple relations of type "myrel" detected, '
-            'using only the first one (id: 1) for relation data.',
+            "using only the first one (id: 1) for relation data.",
             'WARNING:charm:Multiple units detected in the relation "myrel:1", '
-            'using only the first one (id: myapp/0) for relation data.',
+            "using only the first one (id: myapp/0) for relation data.",
         ]
 
         with self.assertLogs(level="WARNING") as logger:
@@ -265,14 +265,14 @@ class TestGunicornK8sCharm(unittest.TestCase):
         test_str = "a: :"
         expected_type = dict
         expected_output = [
-            'ERROR:charm:Error when parsing the following YAML : a: : : mapping values '
-            'are not allowed here\n'
+            "ERROR:charm:Error when parsing the following YAML : a: : : mapping values "
+            "are not allowed here\n"
             '  in "<unicode string>", line 1, column 4:\n'
-            '    a: :\n'
-            '       ^'
+            "    a: :\n"
+            "       ^"
         ]
 
-        with self.assertLogs(level='ERROR') as logger:
+        with self.assertLogs(level="ERROR") as logger:
             self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(sorted(logger.output), expected_output)
@@ -282,10 +282,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
         test_str = "a: b"
         expected_type = str
         expected_output = [
-            "ERROR:charm:Expected type '<class 'str'>' but got '<class 'dict'>' when " 'parsing YAML : a: b'
+            "ERROR:charm:Expected type '<class 'str'>' but got '<class 'dict'>' when "
+            "parsing YAML : a: b"
         ]
 
-        with self.assertLogs(level='ERROR') as logger:
+        with self.assertLogs(level="ERROR") as logger:
             self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(sorted(logger.output), expected_output)
@@ -294,7 +295,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
         """Test the _make_pod_env function."""
 
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config({'environment': ''})
+        self.harness.update_config({"environment": ""})
         expected_ret = {}
 
         r = self.harness.charm._make_pod_env()
@@ -303,8 +304,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
     def test_make_pod_env_proper_env_no_temp_rel(self):
 
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config({'environment': 'a: b'})
-        expected_ret = {'a': 'b'}
+        self.harness.update_config({"environment": "a: b"})
+        expected_ret = {"a": "b"}
 
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret)
@@ -313,20 +314,20 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         # Proper env with templating/relations
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config({'environment': "DB: {{pg.db_uri}}\nTHING: {{myrel.thing}}}"})
-        expected_ret = {'a': 'b'}
+        self.harness.update_config({"environment": "DB: {{pg.db_uri}}\nTHING: {{myrel.thing}}}"})
+        expected_ret = {"a": "b"}
 
         # Set up PG relation
         reldata = self.harness.charm._stored.reldata
-        reldata['pg'] = {'conn_str': TEST_PG_CONNSTR, 'db_uri': TEST_PG_URI}
+        reldata["pg"] = {"conn_str": TEST_PG_CONNSTR, "db_uri": TEST_PG_URI}
 
         # Set up random relation
         self.harness.disable_hooks()  # no need for hooks to fire for this test
-        relation_id = self.harness.add_relation('myrel', 'myapp')
-        self.harness.add_relation_unit(relation_id, 'myapp/0')
-        self.harness.update_relation_data(relation_id, 'myapp/0', {'thing': 'bli'})
+        relation_id = self.harness.add_relation("myrel", "myapp")
+        self.harness.add_relation_unit(relation_id, "myapp/0")
+        self.harness.update_relation_data(relation_id, "myapp/0", {"thing": "bli"})
 
-        expected_ret = {'DB': TEST_PG_URI, 'THING': 'bli}'}
+        expected_ret = {"DB": TEST_PG_URI, "THING": "bli}"}
 
         r = self.harness.charm._make_pod_env()
         self.assertEqual(r, expected_ret)
@@ -335,15 +336,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         # Improper env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
-        self.harness.update_config({'environment': 'a: :'})
+        self.harness.update_config({"environment": "a: :"})
         expected_output = [
-            'ERROR:charm:Error when parsing the following YAML : a: : : mapping values '
-            'are not allowed here\n'
+            "ERROR:charm:Error when parsing the following YAML : a: : : mapping values "
+            "are not allowed here\n"
             '  in "<unicode string>", line 1, column 4:\n'
-            '    a: :\n'
-            '       ^'
+            "    a: :\n"
+            "       ^"
         ]
-        with self.assertLogs(level='ERROR') as logger:
+        with self.assertLogs(level="ERROR") as logger:
             self.harness.charm._make_pod_env()
             self.assertEqual(logger.output, expected_output)
 
@@ -378,10 +379,10 @@ class TestGunicornK8sCharm(unittest.TestCase):
         expected_error = "Error getting pod_env_config"
         expected_ret = {}
         mock_event = MagicMock()
-        with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
+        with patch("charm.GunicornK8sCharm._make_pod_env") as make_pod_env:
             make_pod_env.return_value = True
 
-            with self.assertLogs(level='ERROR') as logger:
+            with self.assertLogs(level="ERROR") as logger:
                 config_output = self.harness.charm._get_gunicorn_pebble_config(mock_event)
                 self.assertEqual(config_output, expected_ret)
             self.assertTrue(expected_error in logger.output[0])
@@ -408,15 +409,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         mock_event = MagicMock()
         expected_ret = None
-        expected_output = 'waiting for pebble to start'
-        with patch('ops.model.Container.can_connect') as can_connect:
+        expected_output = "waiting for pebble to start"
+        with patch("ops.model.Container.can_connect") as can_connect:
             can_connect.return_value = False
 
-            with self.assertLogs(level='DEBUG') as logger:
+            with self.assertLogs(level="DEBUG") as logger:
                 r = self.harness.charm._configure_workload(mock_event)
                 self.assertEqual(r, expected_ret)
             self.assertTrue(expected_output in logger.output[0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
