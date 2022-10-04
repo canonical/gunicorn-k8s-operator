@@ -164,11 +164,11 @@ class GunicornK8sCharm(CharmBase):
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""
-        pebble_config = self._get_gunicorn_pebble_config(event)
-        statsd_pebble_config = self._get_statsd_pebble_config(event)
-        if not pebble_config:
+        gunicorn_pebble_config = self._get_gunicorn_pebble_config(event)
+        if not gunicorn_pebble_config:
             # Charm will be in blocked status.
             return
+        statsd_pebble_config = self._get_statsd_pebble_config(event)
         juju_conf = self._check_juju_config()
         if juju_conf:
             self.unit.status = BlockedStatus(str(juju_conf))
@@ -177,17 +177,17 @@ class GunicornK8sCharm(CharmBase):
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
 
-        container = self.unit.get_container("gunicorn")
+        gunicorn_container = self.unit.get_container("gunicorn")
         statsd_container = self.unit.get_container("statsd-prometheus-exporter")
         # pebble may not be ready, in which case we just return
-        if (not container.can_connect()) or (not statsd_container.can_connect()):
+        if not gunicorn_container.can_connect() or not statsd_container.can_connect():
             self.unit.status = MaintenanceStatus('waiting for pebble to start')
             logger.debug('waiting for pebble to start')
             return
 
-        logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(pebble_config)))
-        container.add_layer("gunicorn", pebble_config, combine=True)
-        container.pebble.replan_services()
+        logger.debug("About to add_layer with pebble_config:\n{}".format(yaml.dump(gunicorn_pebble_config)))
+        gunicorn_container.add_layer("gunicorn", gunicorn_pebble_config, combine=True)
+        gunicorn_container.pebble.replan_services()
         statsd_container.add_layer("statsd-prometheus-exporter", statsd_pebble_config, combine=True)
         statsd_container.pebble.replan_services()
 
