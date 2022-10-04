@@ -27,7 +27,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
         """Setup the harness object."""
         self.harness = testing.Harness(GunicornK8sCharm)
         self.harness.begin()
-        self.harness.add_oci_resource('gunicorn-image')
+        self.harness.add_oci_resource("gunicorn-image")
+        self.harness.add_oci_resource("statsd-prometheus-exporter-image")
 
     def tearDown(self):
         """Cleanup the harness."""
@@ -39,13 +40,13 @@ class TestGunicornK8sCharm(unittest.TestCase):
         # We'll only test the case where _stored already
         # has content. _stored being empty is basically tested
         # by all the other functions
-
-        with patch('test_charm.GunicornK8sCharm._stored') as mock_stored:
-            with patch('pgsql.PostgreSQLClient'):
-                with patch('test_charm.GunicornK8sCharm.on'):
-                    mock_stored.reldata = {'pg': 'foo'}
-                    c = GunicornK8sCharm(MagicMock())
-                    self.assertEqual(c._stored.reldata, mock_stored.reldata)
+        with patch("charm.GunicornK8sCharm.__init__") as mock_init, patch(
+            'test_charm.GunicornK8sCharm._stored'
+        ) as mock_stored, patch('pgsql.PostgreSQLClient'), patch('test_charm.GunicornK8sCharm.on'):
+            mock_stored.reldata = {'pg': 'foo'}
+            mock_init.return_value = None
+            charm = GunicornK8sCharm(MagicMock())
+            self.assertEqual(charm._stored.reldata, mock_stored.reldata)
 
     def test_on_database_relation_joined_unit_is_leader(self):
         """Test the _on_database_relation_joined function."""
@@ -346,8 +347,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.harness.charm._make_pod_env()
             self.assertEqual(logger.output, expected_output)
 
-    def test_get_pebble_config(self):
-        """Test the _get_pebble_config function."""
+    def test_get_gunicorn_pebble_config(self):
+        """Test the _get_gunicorn_pebble_config function."""
         mock_event = MagicMock()
         expected_ret = {
             "summary": "gunicorn layer",
@@ -369,21 +370,21 @@ class TestGunicornK8sCharm(unittest.TestCase):
             },
         }
 
-        r = self.harness.charm._get_pebble_config(mock_event)
+        r = self.harness.charm._get_gunicorn_pebble_config(mock_event)
         self.assertEqual(r, expected_ret)
 
-    def test_get_pebble_config_error(self):
-        """Test the _get_pebble_config function when throwing an error."""
-        expected_output = "ERROR:charm:Error getting pod_env_config: Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\""  # noqa: E501
+    def test_get_gunicorn_pebble_config_error(self):
+        """Test the _get_gunicorn_pebble_config function when throwing an error."""
+        expected_error = "Error getting pod_env_config"
         expected_ret = {}
         mock_event = MagicMock()
         with patch('charm.GunicornK8sCharm._make_pod_env') as make_pod_env:
             make_pod_env.return_value = True
 
             with self.assertLogs(level='ERROR') as logger:
-                r = self.harness.charm._get_pebble_config(mock_event)
-                self.assertEqual(r, expected_ret)
-            self.assertEqual(expected_output, logger.output[0])
+                config_output = self.harness.charm._get_gunicorn_pebble_config(mock_event)
+                self.assertEqual(config_output, expected_ret)
+            self.assertTrue(expected_error in logger.output[0])
 
     def test_on_gunicorn_pebble_ready_no_problem(self):
         """Test the _on_gunicorn_pebble_ready function."""

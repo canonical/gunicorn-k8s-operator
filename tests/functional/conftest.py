@@ -7,3 +7,11 @@ def gunicorn_image(pytestconfig: pytest.Config):
     value: None | str = pytestconfig.getoption("--gunicorn-image")
     assert value is not None, "please specify the --gunicorn-image command line option"
     return value
+
+
+@pytest.fixture(scope="module")
+def statsd_exporter_image(pytestconfig: pytest.Config):
+    """Get the statsd exporter image."""
+    value: None | str = pytestconfig.getoption("--statsd-prometheus-exporter-image")
+    assert value is not None, "please specify the --statsd-prometheus-exporter-image command line option"
+    return value
