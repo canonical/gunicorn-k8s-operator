@@ -6,7 +6,7 @@
 branch = true
 
 [tool.coverage.report]
-fail_under = 85
+fail_under = 99
 show_missing = true
 
 
