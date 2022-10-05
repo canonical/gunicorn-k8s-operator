@@ -198,7 +198,7 @@ class GunicornK8sCharm(CharmBase):
             return
 
         logger.debug(
-            "About to add_layer with pebble_config:\n{}".format(yaml.dump(gunicorn_pebble_config))
+            "About to add_layer with pebble_config: %s", yaml.dump(gunicorn_pebble_config)
         )
         gunicorn_container.add_layer("gunicorn", gunicorn_pebble_config, combine=True)
         gunicorn_container.pebble.replan_services()
