@@ -26,6 +26,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
+      - name: Bootstrap machine controller
+        run: sudo juju bootstrap localhost localhost-ctrl
         with:
           provider: microk8s
       - name: Enable microk8s registry
@@ -43,7 +45,7 @@ jobs:
           docker tag $imageId localhost:32000/gunicorn:latest
           docker push localhost:32000/gunicorn:latest
       - name: Run integration tests
-        run: tox -e integration -- --model testing --gunicorn-image localhost:32000/gunicorn:latest --statsd-prometheus-exporter-image prom/statsd-exporter --machine-controller-name localhost --influx-model-name influxmodel
+        run: tox -e integration -- --model testing --gunicorn-image localhost:32000/gunicorn:latest --statsd-prometheus-exporter-image prom/statsd-exporter --machine-controller-name localhost-ctrl --influx-model-name influxmodel
       - name: Dump logs
         uses: canonical/charm-logdump-action@main
         if: failure()
