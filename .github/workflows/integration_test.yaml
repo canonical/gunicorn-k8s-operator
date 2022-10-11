@@ -27,7 +27,8 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
       - name: Bootstrap machine controller
-        run: sudo juju bootstrap localhost localhost-ctrl
+        run: |
+          sudo juju bootstrap localhost localhost-ctrl
         with:
           provider: microk8s
       - name: Enable microk8s registry
