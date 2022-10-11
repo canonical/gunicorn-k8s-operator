@@ -13,5 +13,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
 def statsd_exporter_image(pytestconfig: pytest.Config):
     """Get the statsd exporter image."""
     value: None | str = pytestconfig.getoption("--statsd-prometheus-exporter-image")
-    assert value is not None, "please specify the --statsd-prometheus-exporter-image command line option"
+    assert (
+        value is not None
+    ), "please specify the --statsd-prometheus-exporter-image command line option"
     return value
