@@ -44,7 +44,7 @@ jobs:
         run: |
           sudo microk8s config > ${HOME}/.kube/config
           sg microk8s -c "juju bootstrap microk8s k8s-ctrl"
-          juju switch micro
+          juju switch k8s-ctrl
       # [20220824] charmed-kubernetes/actions-operator@main does not work on
       # ubuntu-22.04, but charm runs on 22.04 which has Python 3.10, hence
       # installing Python 3.10 here
