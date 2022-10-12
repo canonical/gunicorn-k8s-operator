@@ -60,7 +60,6 @@ jobs:
           docker push localhost:32000/gunicorn:latest
       - name: Run integration tests
         run: |
-          juju add-model testing
           tox -e integration -- --model testing --gunicorn-image localhost:32000/gunicorn:latest --statsd-prometheus-exporter-image prom/statsd-exporter --influx-model-name influxmodel
       - name: Dump logs
         uses: canonical/charm-logdump-action@main
