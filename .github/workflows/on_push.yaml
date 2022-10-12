@@ -50,11 +50,6 @@ jobs:
           charm-name: gunicorn-k8s
           resource-name: gunicorn-image
           charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
-      - uses: ./.github/actions/publish_oci_resource
-        with:
-          charm-name: gunicorn-k8s
-          resource-name: statsd-prometheus-exporter-image
-          charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
   select-channel:
     name: Select target channel
     runs-on: ubuntu-latest
