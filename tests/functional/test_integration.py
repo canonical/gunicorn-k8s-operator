@@ -1,6 +1,7 @@
 import pytest
 import subprocess
 import time
+import yaml
 from ops.model import ActiveStatus
 from pytest_operator.plugin import OpsTest
 
@@ -10,11 +11,17 @@ async def test_build_and_deploy_with_psql(
     ops_test: OpsTest,
     gunicorn_image,
     statsd_exporter_image,
-    machine_controller_name,
     influx_model_name,
 ):
-    subprocess.check_output(["juju", "switch", machine_controller_name])
-    subprocess.check_output(["juju", "add-model", influx_model_name, "localhost"])
+    result = subprocess.check_output(["juju", "controllers", "--format", "yaml"])
+    controller_name = next(
+        filter(
+            lambda item: item[1]["cloud"] == "localhost",
+            yaml.safe_load(result)["controllers"].items(),
+        )
+    )[0]
+    subprocess.check_output(["juju", "switch", controller_name])
+    subprocess.check_output(["juju", "add-model", influx_model_name])
     subprocess.check_output(["juju", "deploy", "influxdb"])
     subprocess.check_output(["juju", "offer", "influxdb:query", "influxoffer"])
     charm = await ops_test.build_charm(".")
@@ -31,7 +38,7 @@ async def test_build_and_deploy_with_psql(
     await ops_test.juju(
         "relate",
         "gunicorn-k8s:influxdb",
-        f"{machine_controller_name}:admin/{influx_model_name}.influxoffer",
+        f"{controller_name}:admin/{influx_model_name}.influxoffer",
         check=True,
     )
     await ops_test.model.wait_for_idle(status=ActiveStatus.name, raise_on_error=False)
