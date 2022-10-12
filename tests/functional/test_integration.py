@@ -29,7 +29,7 @@ async def test_build_and_deploy_with_psql(
         "gunicorn-image": gunicorn_image,
         "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
-    await ops_test.model.deploy(charm, resources=resources)
+    await ops_test.model.deploy(charm, resources=resources, series="focal")
     await ops_test.model.deploy("postgresql-k8s")
     await ops_test.model.add_relation(
         "postgresql-k8s:db",
