@@ -1,4 +1,5 @@
 import pytest
+import requests
 import subprocess
 import time
 import yaml
@@ -59,8 +60,10 @@ async def test_workload_psql_var(ops_test: OpsTest):
     config = await app.get_config()
     assert config["environment"]["value"] == "TEST_ENV_VAR: {{pg.db_uri}}"
     time.sleep(10)
-    gunicorn_unit = app.units[0]
-    action = await gunicorn_unit.run("curl 127.0.0.1")
-    result = await action.wait()
-    stdout = result.results.get("stdout")
-    assert "TEST_ENV_VAR" in str(stdout)
+    status = await ops_test.model.get_status()
+    unit = list(status.applications["gunicorn-k8s"].units)[0]
+    address = status["applications"]["gunicorn-k8s"]["units"][unit]["address"]
+
+    response = requests.get(f"http://{address}")
+    assert response.status_code == 200
+    assert "TEST_ENV_VAR" in response.text
