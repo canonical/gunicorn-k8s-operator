@@ -1,5 +1,12 @@
 import pytest
+import yaml
+from pathlib import Path
 
+
+@pytest.fixture(scope="module")
+def metadata():
+    """Provides charm metadata."""
+    yield yaml.safe_load(Path("./metadata.yaml").read_text())
 
 @pytest.fixture(scope="module")
 def gunicorn_image(pytestconfig: pytest.Config):
@@ -10,18 +17,12 @@ def gunicorn_image(pytestconfig: pytest.Config):
 
 
 @pytest.fixture(scope="module")
-def statsd_exporter_image(pytestconfig: pytest.Config):
-    """Get the statsd exporter image."""
-    value: None | str = pytestconfig.getoption("--statsd-prometheus-exporter-image")
-    assert (
-        value is not None
-    ), "please specify the --statsd-prometheus-exporter-image command line option"
-    return value
+def statsd_exporter_image(metadata):
+    """Provides the nginx prometheus exporter image from the metadata."""
+    yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
 
 
 @pytest.fixture(scope="module")
-def influx_model_name(pytestconfig: pytest.Config):
+def influx_model_name():
     """Get influx's model name for testing."""
-    value: None | str = pytestconfig.getoption("--influx-model-name")
-    assert value is not None, "please specify the --influx-model-name command line option"
-    return value
+    return "influxdbmodel"

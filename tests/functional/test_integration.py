@@ -55,9 +55,9 @@ async def test_status(ops_test: OpsTest):
 
 async def test_workload_psql_var(ops_test: OpsTest):
     app = ops_test.model.applications["gunicorn-k8s"]
-    await app.set_config({"environment": "TEST_ENV_VAR: 1"})
+    await app.set_config({"environment": "TEST_ENV_VAR: {{pg.db_uri}}"})
     config = await app.get_config()
-    assert config["environment"]["value"] == "TEST_ENV_VAR: 1"
+    assert config["environment"]["value"] == "TEST_ENV_VAR: {{pg.db_uri}}"
     time.sleep(10)
     gunicorn_unit = app.units[0]
     action = await gunicorn_unit.run("curl 127.0.0.1")
