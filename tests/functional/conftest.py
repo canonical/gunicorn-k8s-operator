@@ -8,6 +8,7 @@ def metadata():
     """Provides charm metadata."""
     yield yaml.safe_load(Path("./metadata.yaml").read_text())
 
+
 @pytest.fixture(scope="module")
 def gunicorn_image(pytestconfig: pytest.Config):
     """Get the gunicorn image."""
