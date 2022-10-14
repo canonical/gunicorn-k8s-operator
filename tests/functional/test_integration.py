@@ -1,6 +1,5 @@
 import asyncio
 
-import pytest
 import requests
 from ops.model import ActiveStatus, Application
 from pytest_operator.plugin import OpsTest
