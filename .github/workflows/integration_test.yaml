@@ -23,7 +23,7 @@ jobs:
     needs: build-gunicorn-image
     steps:
       - name: Checkout
-        uses: actions/checkout@v3      
+        uses: actions/checkout@v3
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -42,7 +42,6 @@ jobs:
           sudo microk8s.kubectl -n container-registry rollout status -w deployment/registry
       - name: Bootstrap microk8s
         run: |
-          sudo microk8s config > ${HOME}/.kube/config
           sg microk8s -c "juju bootstrap microk8s k8s-ctrl"
           juju switch k8s-ctrl
       - name: Download all artifacts

@@ -41,10 +41,8 @@ async def app(
     influx_model_name: str,
 ):
     """
-    arrange: given a development version of the gunicorn charm
-    act: deploy it with postgresql-k8s (same model) and influxdb (cross-model/controller),
-        and relate them.
-    assert: the build and deploy process should end correctly.
+    Gunicorn charm used for integration testing.
+    Builds the charm, deployes it and adds relations for testing purposes.
     """
     result = await ops_test.juju("controllers", "--format", "yaml")
     result_stdout = result[1]

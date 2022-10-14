@@ -7,7 +7,7 @@ from pytest_operator.plugin import OpsTest
 
 async def test_status(ops_test: OpsTest, app: Application):
     """
-    arrange: given the resulting juju model of the first test
+    arrange: given that the gunicorn application is correctly deployed
     act: when we check the status of the applications
     assert: the model should have all its charms in active state.
     """
@@ -17,7 +17,7 @@ async def test_status(ops_test: OpsTest, app: Application):
 
 async def test_workload_psql_var(ops_test: OpsTest, app: Application):
     """
-    arrange: given the resulting juju model of the first test
+    arrange: given that the gunicorn application is correctly deployed
     act: when the environment config option is modified
     assert: assert that the environment variable has been correctly injected
         to the deployed charm's docker container.
