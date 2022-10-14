@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3      
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: lxd
       - name: Install microk8s
         run: |
           sudo snap install microk8s --classic
@@ -31,10 +35,6 @@ jobs:
           sudo microk8s.enable dns hostpath-storage registry
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
       - name: Ensure microk8s is ready
         run: |
           sudo microk8s.kubectl -n kube-system rollout status -w deployment/hostpath-provisioner
