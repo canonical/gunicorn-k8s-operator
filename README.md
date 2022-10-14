@@ -2,17 +2,19 @@
 
 A Juju charm deploying docker images using gunicorn as default. 
 
-This charm simplifies docker image deployment management, allowing us to inject variables to the environment as we see fit. It allows for deployment on
+This charm simplifies docker image deployment management, 
+allowing us to inject variables to the environment as we see fit. It allows for deployment on
 many different Kubernetes platforms, from [MicroK8s](https://microk8s.io) to
 [Charmed Kubernetes](https://ubuntu.com/kubernetes) to public cloud Kubernetes
 offerings.
 
-As such, the charm makes it easy for those looking to take control of their docker images, use them in a juju environment without having to write a charm from scratch and gives them the
+As such, the charm makes it easy for those looking to take control of their docker images, 
+use them in a juju environment without having to write a charm from scratch and gives them the
 freedom to deploy on the Kubernetes platform of their choice.
 
-For DevOps or SRE teams this charm will make docker image testing easier and more manageable. It will allow easy deployment
-into multiple environments for testing of changes, and supports scaling out for
-enterprise deployments.
+For DevOps or SRE teams this charm will make docker image testing easier and more manageable. 
+It will allow easy deployment into multiple environments for testing of changes,
+and supports scaling out for enterprise deployments.
 
 ## Deployment options overview
 
@@ -38,7 +40,8 @@ The charm also supports the `ingress` relation, which can be used with
 
 Once the deployment has completed and the "gunicorn-k8s" workload state in
 `juju status` has changed to "active" you can visit `http://gunicorn` in
-a browser (assuming `gunicorn` resolves to the IP(s) of your k8s ingress) or the juju unit's (gunicorn-k8s) assigned IP, and you'll be presented with a screen
+a browser (assuming `gunicorn` resolves to the IP(s) of your k8s ingress) or the juju unit's
+(gunicorn-k8s) assigned IP, and you'll be presented with a screen
 that details all the environment variables used by the deployed docker image.
 
 ## Using your own image

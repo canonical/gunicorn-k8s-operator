@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 
 
 @pytest.fixture(scope="module")
@@ -19,7 +20,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
 
 @pytest.fixture(scope="module")
 def statsd_exporter_image(metadata):
-    """Provides the nginx prometheus exporter image from the metadata."""
+    """Provides the statsd prometheus exporter image from the metadata."""
     yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
 
 

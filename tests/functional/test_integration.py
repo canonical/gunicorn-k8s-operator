@@ -1,7 +1,8 @@
+import asyncio
+import subprocess
+
 import pytest
 import requests
-import subprocess
-import time
 import yaml
 from ops.model import ActiveStatus
 from pytest_operator.plugin import OpsTest
@@ -10,10 +11,15 @@ from pytest_operator.plugin import OpsTest
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy_with_psql(
     ops_test: OpsTest,
-    gunicorn_image,
-    statsd_exporter_image,
-    influx_model_name,
+    gunicorn_image: str,
+    statsd_exporter_image: str,
+    influx_model_name: str,
 ):
+    """
+    arrange: given a development version of the gunicorn charm
+    act: deploy it with postgresql-k8s (same model) and influxdb (cross-model/controller),
+    and relate them.
+    """
     result = subprocess.check_output(["juju", "controllers", "--format", "yaml"])
     controller_name = next(
         filter(
@@ -21,10 +27,28 @@ async def test_build_and_deploy_with_psql(
             yaml.safe_load(result)["controllers"].items(),
         )
     )[0]
-    subprocess.check_output(["juju", "switch", controller_name])
-    subprocess.check_output(["juju", "add-model", influx_model_name])
-    subprocess.check_output(["juju", "deploy", "influxdb"])
-    subprocess.check_output(["juju", "offer", "influxdb:query", "influxoffer"])
+    await ops_test.juju(
+        "add-model",
+        influx_model_name,
+        "--controller",
+        controller_name,
+        check=True,
+    )
+    await ops_test.juju(
+        "deploy",
+        "influxdb",
+        "--model",
+        f"{controller_name}:{influx_model_name}",
+        check=True,
+    )
+    await ops_test.juju(
+        "offer",
+        "influxdb:query",
+        "influxoffer",
+        "--controller",
+        controller_name,
+        check=True,
+    )
     charm = await ops_test.build_charm(".")
     resources = {
         "gunicorn-image": gunicorn_image,
@@ -43,27 +67,39 @@ async def test_build_and_deploy_with_psql(
         check=True,
     )
     await ops_test.model.wait_for_idle(status=ActiveStatus.name, raise_on_error=False)
-    subprocess.check_output(
-        ["juju", "destroy-model", influx_model_name, "--force", "--destroy-storage", "-y"]
+    await ops_test.juju(
+        "destroy-model",
+        f"{controller_name}:{influx_model_name}",
+        "--force",
+        "--destroy-storage",
+        "-y",
     )
-    subprocess.check_output(["juju", "switch", "k8s-ctrl"])
 
 
 async def test_status(ops_test: OpsTest):
+    """
+    arrange: given the resulting juju model of the first test
+    assert: the model should have all its charms in active state.
+    """
     assert ops_test.model.applications["gunicorn-k8s"].status == ActiveStatus.name
     assert ops_test.model.applications["postgresql-k8s"].status == ActiveStatus.name
 
 
 async def test_workload_psql_var(ops_test: OpsTest):
+    """
+    arrange: given the resulting juju model of the first test
+    act: when the environment config option is modified
+    assert: assert that the environment variable has been correctly injected
+    to the deployed charm's docker container.
+    """
     app = ops_test.model.applications["gunicorn-k8s"]
     await app.set_config({"environment": "TEST_ENV_VAR: {{pg.db_uri}}"})
     config = await app.get_config()
     assert config["environment"]["value"] == "TEST_ENV_VAR: {{pg.db_uri}}"
-    time.sleep(10)
+    await asyncio.sleep(10)
     status = await ops_test.model.get_status()
     unit = list(status.applications["gunicorn-k8s"].units)[0]
     address = status["applications"]["gunicorn-k8s"]["units"][unit]["address"]
-
     response = requests.get(f"http://{address}")
     assert response.status_code == 200
     assert "TEST_ENV_VAR" in response.text

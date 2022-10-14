@@ -23,11 +23,7 @@ jobs:
     needs: build-gunicorn-image
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
+        uses: actions/checkout@v3      
       - name: Install microk8s
         run: |
           sudo snap install microk8s --classic
@@ -35,6 +31,10 @@ jobs:
           sudo microk8s.enable dns hostpath-storage registry
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: lxd
       - name: Ensure microk8s is ready
         run: |
           sudo microk8s.kubectl -n kube-system rollout status -w deployment/hostpath-provisioner
@@ -45,12 +45,6 @@ jobs:
           sudo microk8s config > ${HOME}/.kube/config
           sg microk8s -c "juju bootstrap microk8s k8s-ctrl"
           juju switch k8s-ctrl
-      # [20220824] charmed-kubernetes/actions-operator@main does not work on
-      # ubuntu-22.04, but charm runs on 22.04 which has Python 3.10, hence
-      # installing Python 3.10 here
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
       - name: Download all artifacts
         uses: actions/download-artifact@v3
       - name: Push gunicorn image to microk8s registry
