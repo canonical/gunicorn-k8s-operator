@@ -26,6 +26,9 @@ runs:
       env:
         CHARMCRAFT_AUTH: ${{ inputs.charmhub-token }}
       shell: bash
+      # While it should be possible to upload the resource using the image's digest, it seems there is a bug
+      # in Charmcraft that prevents us from doing that successfully. A workaround has been made by using
+      # the image's ID instead.
       run: |
         imageId=$(docker load --input /tmp/${{ inputs.resource-name }}.tar | sed -e "s/^Loaded image ID: //")
         docker tag $imageId localhost:32000/gunicorn:latest
