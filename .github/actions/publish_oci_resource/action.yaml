@@ -27,5 +27,7 @@ runs:
         CHARMCRAFT_AUTH: ${{ inputs.charmhub-token }}
       shell: bash
       run: |
-        imageId=$(docker load --input /tmp/${{ inputs.resource-name }}.tar && docker images -q ${{ inputs.resource-name }})
-        charmcraft upload-resource ${{ inputs.charm-name }} ${{ inputs.resource-name }} --image=$imageId --verbosity=trace
+        imageId=$(docker load --input /tmp/${{ inputs.resource-name }}.tar | sed -e "s/^Loaded image ID: //")
+        docker tag $imageId localhost:32000/gunicorn:latest
+        imageIdUpload=$(docker images -q localhost:32000/gunicorn:latest)
+        charmcraft upload-resource ${{ inputs.charm-name }} ${{ inputs.resource-name }} --image=$imageIdUpload --verbosity=trace
