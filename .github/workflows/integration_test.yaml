@@ -48,7 +48,7 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Push gunicorn image to microk8s registry
         run: |
-          imageId=$(docker load --input gunicorn-image/gunicorn-image.tar | sed -e "s/^Loaded image ID: //")
+          imageId=$(docker load --input gunicorn-image/gunicorn-image.tar && docker images -q ${{ inputs.resource-name }})
           docker tag $imageId localhost:32000/gunicorn:latest
           docker push localhost:32000/gunicorn:latest
       - name: Run integration tests
