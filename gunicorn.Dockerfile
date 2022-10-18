@@ -13,8 +13,6 @@ WORKDIR /srv/gunicorn/
 COPY ./docker/run .
 RUN chmod +x run
 
-EXPOSE 8080
-
 CMD /srv/gunicorn/run
 
 ENV APP_WSGI app:app
