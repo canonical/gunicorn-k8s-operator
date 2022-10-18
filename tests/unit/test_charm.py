@@ -366,7 +366,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 "gunicorn-ready": {
                     "override": "replace",
                     "level": "ready",
-                    "http": {"url": "http://127.0.0.1:80"},
+                    "http": {"url": "http://127.0.0.1:8081"},
                 },
             },
         }

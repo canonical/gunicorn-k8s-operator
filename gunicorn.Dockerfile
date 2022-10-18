@@ -19,3 +19,5 @@ ENV APP_WSGI app:app
 ENV APP_NAME my-awesome-app
 
 COPY ./docker/app .
+
+EXPOSE 8081

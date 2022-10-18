@@ -94,6 +94,7 @@ class GunicornK8sCharm(CharmBase):
 
     def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate gunicorn's container pebble config."""
+        port = self.config["external_port"]
         pebble_config = {
             "summary": "gunicorn layer",
             "description": "gunicorn layer",
@@ -109,7 +110,7 @@ class GunicornK8sCharm(CharmBase):
                 "gunicorn-ready": {
                     "override": "replace",
                     "level": "ready",
-                    "http": {"url": "http://127.0.0.1:80"},
+                    "http": {"url": f"http://127.0.0.1:{port}"},
                 },
             },
         }
