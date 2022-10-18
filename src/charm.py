@@ -182,7 +182,12 @@ class GunicornK8sCharm(CharmBase):
             return {}
 
         # Ensure the ingress relation has the external hostname.
-        self.ingress.update_config({"service-hostname": self.config["external_hostname"], "service-port": self.config["external_port"]})
+        self.ingress.update_config(
+            {
+                "service-hostname": self.config["external_hostname"],
+                "service-port": self.config["external_port"],
+            }
+        )
 
         gunicorn_container = self.unit.get_container("gunicorn")
         statsd_container = self.unit.get_container("statsd-prometheus-exporter")
