@@ -17,7 +17,7 @@ options:
       External hostname this gunicorn app should respond to (required).
     default: "foo.internal"
   external_port:
-    type: integer
+    type: int
     description: >
       External port for Ingress configuration.
     default: 8080
