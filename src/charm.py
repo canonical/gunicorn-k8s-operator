@@ -2,26 +2,21 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from jinja2 import Environment, BaseLoader, meta
 import logging
-import yaml
 
+import ops
+import pgsql
+import yaml
+from charms.data_platform_libs.v0.database_requires import DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
-from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.data_platform_libs.v0.database_requires import DatabaseRequires
 from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
-import ops
-from ops.framework import StoredState
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from jinja2 import BaseLoader, Environment, meta
 from ops.charm import CharmBase
+from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-    MaintenanceStatus,
-)
-import pgsql
-
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +70,7 @@ class GunicornK8sCharm(CharmBase):
             {
                 "service-hostname": self.config["external_hostname"],
                 "service-name": self.app.name,
-                "service-port": 80,
+                "service-port": self.config["external_port"],
             },
         )
 
@@ -187,7 +182,7 @@ class GunicornK8sCharm(CharmBase):
             return {}
 
         # Ensure the ingress relation has the external hostname.
-        self.ingress.update_config({"service-hostname": self.config["external_hostname"]})
+        self.ingress.update_config({"service-hostname": self.config["external_hostname"], "service-port": self.config["external_port"]})
 
         gunicorn_container = self.unit.get_container("gunicorn")
         statsd_container = self.unit.get_container("statsd-prometheus-exporter")
