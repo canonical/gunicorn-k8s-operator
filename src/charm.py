@@ -204,7 +204,7 @@ class GunicornK8sCharm(CharmBase):
         gunicorn_container.add_layer("gunicorn", gunicorn_pebble_config, combine=True)
         try:
             gunicorn_container.pebble.replan_services()
-        except:
+        except ops.pebble.ChangeError:
             self.unit.status = BlockedStatus("Charm's startup command may be wrong, please check the config")
             return
 
