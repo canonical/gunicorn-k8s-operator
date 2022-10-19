@@ -3,20 +3,18 @@
 """Test for the gunicorn charm."""
 
 import unittest
-
 from unittest.mock import MagicMock, patch
 
-from charm import GunicornK8sCharm
-
 from ops import testing
-
 from scenario import (
     JUJU_DEFAULT_CONFIG,
     TEST_JUJU_CONFIG,
-    TEST_RENDER_TEMPLATE,
-    TEST_PG_URI,
     TEST_PG_CONNSTR,
+    TEST_PG_URI,
+    TEST_RENDER_TEMPLATE,
 )
+
+from charm import GunicornK8sCharm
 
 
 class TestGunicornK8sCharm(unittest.TestCase):
@@ -366,7 +364,7 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 "gunicorn-ready": {
                     "override": "replace",
                     "level": "ready",
-                    "http": {"url": "http://127.0.0.1:8081"},
+                    "http": {"url": "http://127.0.0.1:8080"},
                 },
             },
         }

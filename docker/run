@@ -2,7 +2,7 @@
 
 exec gunicorn $APP_WSGI \
   --name=$APP_NAME \
-  --bind=0.0.0.0:8081 \
+  --bind=0.0.0.0:8080 \
   --workers=${APP_WORKERS:-1} \
   --worker-class=${WORKER_CLASS:-sync} \
   --worker-connections=${WORKER_CONNECTIONS:-1000} \

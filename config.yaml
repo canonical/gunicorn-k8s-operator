@@ -20,4 +20,4 @@ options:
     type: int
     description: >
       External port for Ingress configuration.
-    default: 8081
+    default: 8080
