@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint-and-unit-test:
-    name: Lint and unit tests
+    name: lint and unit tests
     runs-on: ubuntu-20.04
     outputs:
       report: ${{ steps.export-test-report.outputs.report }}

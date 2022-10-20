@@ -9,12 +9,16 @@ lint: blacken
 	@echo "Running flake8"
 	@tox -e lint
 
+static:
+	@echo "Running bandit"
+	@tox -e static
+
 # We actually use the build directory created by charmcraft,
 # but the .charm file makes a much more convenient sentinel.
 unittest:
 	@tox -e unit
 
-test: lint unittest
+test: lint unittest static
 
 clean:
 	@echo "Cleaning files"
