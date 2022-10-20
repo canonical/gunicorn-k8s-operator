@@ -5,7 +5,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from ops import testing
+from ops import pebble, testing
+from ops.model import BlockedStatus
 from scenario import (
     JUJU_DEFAULT_CONFIG,
     TEST_JUJU_CONFIG,
@@ -415,6 +416,17 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 r = self.harness.charm._configure_workload(mock_event)
                 self.assertEqual(r, expected_ret)
             self.assertTrue(expected_output in logger.output[0])
+
+    def test_configure_workload_exception(self):
+
+        mock_event = MagicMock()
+        
+        with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
+            pebble_mock.replan_services.side_effect = pebble.ChangeError("abc", "def")
+            self.harness.charm._configure_workload(mock_event)
+            self.assertEqual(
+                self.harness.model.unit.status, BlockedStatus("Charm's startup command may be wrong, please check the config")
+            )
 
 
 if __name__ == "__main__":
