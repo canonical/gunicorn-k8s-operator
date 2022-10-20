@@ -102,7 +102,7 @@ class GunicornK8sCharm(CharmBase):
                 "gunicorn": {
                     "override": "replace",
                     "summary": "gunicorn service",
-                    "command": "/srv/gunicorn/run",
+                    "command": self.config["startup_command"],
                     "startup": "enabled",
                 }
             },
@@ -202,7 +202,14 @@ class GunicornK8sCharm(CharmBase):
             "About to add_layer with pebble_config: %s", yaml.dump(gunicorn_pebble_config)
         )
         gunicorn_container.add_layer("gunicorn", gunicorn_pebble_config, combine=True)
-        gunicorn_container.pebble.replan_services()
+        try:
+            gunicorn_container.pebble.replan_services()
+        except ops.pebble.ChangeError:
+            self.unit.status = BlockedStatus(
+                "Charm's startup command may be wrong, please check the config"
+            )
+            return
+
         statsd_container.add_layer(
             "statsd-prometheus-exporter", statsd_pebble_config, combine=True
         )

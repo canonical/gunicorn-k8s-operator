@@ -19,3 +19,7 @@ options:
     type: int
     description: "External port for Ingress configuration."
     default: 8080
+  startup_command:
+    type: string
+    description: Command required to start up the docker image provided.
+    default: "/srv/gunicorn/run"
