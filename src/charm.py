@@ -285,7 +285,7 @@ class GunicornK8sCharm(CharmBase):
 
         :returns: A rendered Jinja2 template
         """
-        j2env = Environment(loader=BaseLoader())
+        j2env = Environment(loader=BaseLoader(), autoescape=True)
         j2template = j2env.from_string(tmpl)
 
         return j2template.render(**ctx)
@@ -371,7 +371,7 @@ class GunicornK8sCharm(CharmBase):
 
         ctx = self._get_context_from_relations()
 
-        j2env = Environment(loader=BaseLoader)
+        j2env = Environment(loader=BaseLoader, autoescape=True)
         j2template = j2env.parse(env)
         missing_vars = set()
 

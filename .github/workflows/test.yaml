@@ -5,8 +5,8 @@ on:
   pull_request:
 
 jobs:
-  lint-and-unit-test:
-    name: Lint and unit tests
+  static-lint-and-unit-test:
+    name: Static, lint and unit tests
     runs-on: ubuntu-20.04
     outputs:
       report: ${{ steps.export-test-report.outputs.report }}
@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: python3 -m pip install tox
       - name: Run tests
-        run: tox -e lint,unit,coverage-report --result-json=test-result.json
+        run: tox -e lint,unit,coverage-report,static --result-json=test-result.json
       - name: Export test report
         if: always() && github.event_name == 'pull_request'
         id: export-test-report
@@ -25,7 +25,7 @@ jobs:
     if: always() && github.event_name == 'pull_request'
     name: Unit test and lint report
     runs-on: ubuntu-20.04
-    needs: [ lint-and-unit-test ]
+    needs: [ static-lint-and-unit-test ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
