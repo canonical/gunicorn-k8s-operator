@@ -18,3 +18,4 @@ jobs:
     uses: canonical/operator-workflows/.github/workflows/on_push.yaml@v1.0.0
     secrets: inherit
     integration-test-pre-run-script: microk8s-installation.sh
+    integration-test-pre-run-provider: lxd
