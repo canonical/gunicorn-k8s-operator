@@ -7,6 +7,3 @@ jobs:
   integration-tests:
     uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@v1.0.0
     secrets: inherit
-    with:
-      pre-run-script: microk8s-installation.sh
-      provider: lxd
