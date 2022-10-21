@@ -12,4 +12,4 @@ jobs:
     secrets: inherit
     with:
       integration-test-pre-run-script: microk8s-installation.sh
-      integration-test-pre-run-provider: lxd
+      integration-test-provider: lxd
