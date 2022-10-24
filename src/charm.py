@@ -67,7 +67,7 @@ class GunicornK8sCharm(CharmBase):
         self.ingress = IngressRequires(
             self,
             {
-                "service-hostname": self._check_external_hostname(
+                "service-hostname": self._assign_external_hostname(
                     self.config["external_hostname"]
                 ),
                 "service-name": self.app.name,
@@ -93,7 +93,7 @@ class GunicornK8sCharm(CharmBase):
         if initial != self._stored.reldata["mongodb"]:
             self._configure_workload(event)
 
-    def _check_external_hostname(self, hostname):
+    def _assign_external_hostname(self, hostname) -> str:
         if hostname == "":
             hostname = self.app.name
         return hostname
@@ -187,7 +187,7 @@ class GunicornK8sCharm(CharmBase):
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config(
             {
-                "service-hostname": self._check_external_hostname(
+                "service-hostname": self._assign_external_hostname(
                     self.config["external_hostname"]
                 ),
                 "service-port": self.config["external_port"],
