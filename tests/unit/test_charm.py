@@ -9,7 +9,6 @@ from ops import pebble, testing
 from ops.model import BlockedStatus
 from scenario import (
     JUJU_DEFAULT_CONFIG,
-    TEST_JUJU_CONFIG,
     TEST_PG_CONNSTR,
     TEST_PG_URI,
     TEST_RENDER_TEMPLATE,
