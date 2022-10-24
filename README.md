@@ -51,8 +51,7 @@ You can, of course, supply our own OCI image. To do so, specify
 or use `juju attach-resource` if you want to switch images after
 initial deployment. Gunicorn is expected to listen on
 port 8080 by default, but you can configure your own port if needed via
-the juju config external_port option.
-
+the juju config `external_port` option.
 
 For further details,
 [see the charm's detailed documentation](https://charmhub.io/gunicorn-k8s/docs).
