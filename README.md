@@ -46,8 +46,9 @@ that details all the environment variables used by the deployed docker image.
 
 ## Using your own image
 
-You can, of course, supply our own OCI image. gunicorn is expected to listen on
-port 80. To do so, specify `--resource gunicorn-image='image-location'` at
+You can, of course, supply our own OCI image. Gunicorn is expected to listen on
+port 8080 by default, but you can configure your own port if needed.
+To do so, specify `--resource gunicorn-image='image-location'` at
 deploy time, or use `juju attach-resource` if you want to switch images after
 initial deployment.
 
