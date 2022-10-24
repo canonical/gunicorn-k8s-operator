@@ -176,25 +176,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
             mock_configure_workload.assert_called_once()
             self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
-    def test_check_juju_config(self):
-        """Check the required juju settings."""
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
-        for scenario, values in TEST_JUJU_CONFIG.items():
-            with self.subTest(scenario=scenario):
-                self.harness.update_config(values["config"])
-                if values["expected"]:
-                    with self.assertLogs(level="ERROR") as logger:
-                        self.harness.charm._check_juju_config()
-                    self.assertEqual(sorted(logger.output), sorted(values["logger"]))
-                else:
-                    self.assertEqual(self.harness.charm._check_juju_config(), None)
-
-                # You need to clean the config after each run
-                # See https://github.com/canonical/operator/blob/master/ops/testing.py#L415
-                # The second argument is the list of key to reset
-                self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
     def test_render_template(self):
         """Test template rendering."""
 
