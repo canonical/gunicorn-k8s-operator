@@ -32,6 +32,7 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
+        self.framework.observe(self.on.statsd_prometheus_exporter_pebble_ready, self._on_statsd_prometheus_exporter_pebble_ready)
 
         # Provide ability for Gunicorn to be scraped by Prometheus using prometheus_scrape
         self._metrics_endpoint = MetricsEndpointProvider(
@@ -173,6 +174,11 @@ class GunicornK8sCharm(CharmBase):
         self._configure_workload(event)
 
     def _on_gunicorn_pebble_ready(self, event: ops.framework.EventBase) -> None:
+        """Handle the workload ready event."""
+
+        self._configure_workload(event)
+
+    def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
         """Handle the workload ready event."""
 
         self._configure_workload(event)

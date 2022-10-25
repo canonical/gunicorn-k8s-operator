@@ -393,6 +393,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
         self.assertEqual(r, expected_ret)
 
+    def test_on_statsd_prometheus_exporter_pebble_ready(self):
+        """Test the _on_statsd_prometheus_exporter_pebble_ready function."""
+
+        mock_event = MagicMock()
+        expected_ret = None
+
+        r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
+        self.assertEqual(r, expected_ret)
+
     def test_configure_workload_no_problem(self):
         """Test the _configure_workload function."""
 
@@ -408,7 +417,14 @@ class TestGunicornK8sCharm(unittest.TestCase):
         expected_ret = None
         expected_output = "waiting for pebble to start"
         with patch("ops.model.Container.can_connect") as can_connect:
-            can_connect.return_value = False
+            can_connect.side_effect = [False, True]
+
+            with self.assertLogs(level="DEBUG") as logger:
+                r = self.harness.charm._configure_workload(mock_event)
+                self.assertEqual(r, expected_ret)
+            self.assertTrue(expected_output in logger.output[0])
+        with patch("ops.model.Container.can_connect") as can_connect:
+            can_connect.side_effect = [True, False]
 
             with self.assertLogs(level="DEBUG") as logger:
                 r = self.harness.charm._configure_workload(mock_event)
