@@ -9,7 +9,6 @@ from ops import pebble, testing
 from ops.model import BlockedStatus
 from scenario import (
     JUJU_DEFAULT_CONFIG,
-    TEST_JUJU_CONFIG,
     TEST_PG_CONNSTR,
     TEST_PG_URI,
     TEST_RENDER_TEMPLATE,
@@ -176,25 +175,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
             mock_configure_workload.assert_called_once()
             self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
-    def test_check_juju_config(self):
-        """Check the required juju settings."""
-        self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
-        for scenario, values in TEST_JUJU_CONFIG.items():
-            with self.subTest(scenario=scenario):
-                self.harness.update_config(values["config"])
-                if values["expected"]:
-                    with self.assertLogs(level="ERROR") as logger:
-                        self.harness.charm._check_juju_config()
-                    self.assertEqual(sorted(logger.output), sorted(values["logger"]))
-                else:
-                    self.assertEqual(self.harness.charm._check_juju_config(), None)
-
-                # You need to clean the config after each run
-                # See https://github.com/canonical/operator/blob/master/ops/testing.py#L415
-                # The second argument is the list of key to reset
-                self.harness.update_config(JUJU_DEFAULT_CONFIG)
-
     def test_render_template(self):
         """Test template rendering."""
 
@@ -289,6 +269,24 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.harness.charm._validate_yaml(test_str, expected_type)
 
         self.assertEqual(sorted(logger.output), expected_output)
+
+    def test_get_external_hostname_not_empty(self):
+
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+        self.harness.update_config({"external_hostname": "123"})
+        expected_ret = "123"
+
+        r = self.harness.charm._get_external_hostname()
+        self.assertEqual(r, expected_ret)
+
+    def test_get_external_hostname_empty(self):
+
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+        self.harness.update_config({"external_hostname": ""})
+        expected_ret = "gunicorn-k8s"
+
+        r = self.harness.charm._get_external_hostname()
+        self.assertEqual(r, expected_ret)
 
     def test_make_pod_env_empty_conf(self):
         """Test the _make_pod_env function."""
