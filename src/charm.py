@@ -32,7 +32,10 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
-        self.framework.observe(self.on.statsd_prometheus_exporter_pebble_ready, self._on_statsd_prometheus_exporter_pebble_ready)
+        self.framework.observe(
+            self.on.statsd_prometheus_exporter_pebble_ready,
+            self._on_statsd_prometheus_exporter_pebble_ready,
+        )
 
         # Provide ability for Gunicorn to be scraped by Prometheus using prometheus_scrape
         self._metrics_endpoint = MetricsEndpointProvider(
