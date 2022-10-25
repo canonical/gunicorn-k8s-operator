@@ -39,8 +39,8 @@ The charm also supports the `ingress` relation, which can be used with
     juju relate gunicorn-k8s:ingress nginx-ingress-integrator:ingress
 
 Once the deployment has completed and the "gunicorn-k8s" workload state in
-`juju status` has changed to "active" you can visit `http://gunicorn` in
-a browser (assuming `gunicorn` resolves to the IP(s) of your k8s ingress) or the juju unit's
+`juju status` has changed to "active" you can visit `http://gunicorn-k8s` in
+a browser (assuming `gunicorn-k8s` resolves to the IP(s) of your k8s ingress) or the juju unit's
 (gunicorn-k8s) assigned IP, and you'll be presented with a screen
 that details all the environment variables used by the deployed docker image.
 
