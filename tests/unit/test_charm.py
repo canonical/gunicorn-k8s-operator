@@ -270,6 +270,24 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         self.assertEqual(sorted(logger.output), expected_output)
 
+    def test_get_external_hostname_not_empty(self):
+
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+        self.harness.update_config({"external_hostname": "123"})
+        expected_ret = "123"
+
+        r = self.harness.charm._get_external_hostname()
+        self.assertEqual(r, expected_ret)
+
+    def test_get_external_hostname_empty(self):
+
+        self.harness.update_config(JUJU_DEFAULT_CONFIG)
+        self.harness.update_config({"external_hostname": ""})
+        expected_ret = "gunicorn-k8s"
+
+        r = self.harness.charm._get_external_hostname()
+        self.assertEqual(r, expected_ret)
+
     def test_make_pod_env_empty_conf(self):
         """Test the _make_pod_env function."""
 
