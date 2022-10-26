@@ -8,7 +8,7 @@ def app(environ, start_response):
     ret = [
         b"One of the nice things about the new operator framework is how easy it is to get started.\n"
     ]
-    for i, x in os.environ.items():
+    for i, x in sorted(os.environ.items()):
         ret.append("{}: {}\n".format(i, x).encode("utf-8"))
 
     return ret

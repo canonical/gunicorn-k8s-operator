@@ -32,4 +32,4 @@ async def test_workload_psql_var(ops_test: OpsTest, app: Application):
     address = status["applications"]["gunicorn-k8s"]["units"][unit]["address"]
     response = requests.get(f"http://{address}:8080")
     assert response.status_code == 200
-    assert "TEST_ENV_VAR" in response.text
+    assert "TEST_ENV_VAR: postgresql://gunicorn-k8s:" in response.text

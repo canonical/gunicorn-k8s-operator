@@ -20,7 +20,6 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_JUJU_CONFIG = ["external_hostname"]
 JUJU_CONFIG_YAML_DICT_ITEMS = ["environment"]
 
 
@@ -33,6 +32,10 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
+        self.framework.observe(
+            self.on.statsd_prometheus_exporter_pebble_ready,
+            self._on_statsd_prometheus_exporter_pebble_ready,
+        )
 
         # Provide ability for Gunicorn to be scraped by Prometheus using prometheus_scrape
         self._metrics_endpoint = MetricsEndpointProvider(
@@ -68,7 +71,7 @@ class GunicornK8sCharm(CharmBase):
         self.ingress = IngressRequires(
             self,
             {
-                "service-hostname": self.config["external_hostname"],
+                "service-hostname": self._get_external_hostname(),
                 "service-name": self.app.name,
                 "service-port": self.config["external_port"],
             },
@@ -91,6 +94,14 @@ class GunicornK8sCharm(CharmBase):
         )
         if initial != self._stored.reldata["mongodb"]:
             self._configure_workload(event)
+
+    def _get_external_hostname(self) -> str:
+        """Assign the hostname according to the config option.
+        If empty, default to the app name."""
+        hostname = self.config["external_hostname"]
+        if hostname == "":
+            hostname = self.app.name
+        return hostname
 
     def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> dict:
         """Generate gunicorn's container pebble config."""
@@ -170,6 +181,11 @@ class GunicornK8sCharm(CharmBase):
 
         self._configure_workload(event)
 
+    def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
+        """Handle the workload ready event."""
+
+        self._configure_workload(event)
+
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""
         gunicorn_pebble_config = self._get_gunicorn_pebble_config(event)
@@ -177,15 +193,11 @@ class GunicornK8sCharm(CharmBase):
             # Charm will be in blocked status.
             return
         statsd_pebble_config = self._get_statsd_pebble_config(event)
-        juju_conf = self._check_juju_config()
-        if juju_conf:
-            self.unit.status = BlockedStatus(str(juju_conf))
-            return {}
 
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config(
             {
-                "service-hostname": self.config["external_hostname"],
+                "service-hostname": self._get_external_hostname(),
                 "service-port": self.config["external_port"],
             }
         )
@@ -265,20 +277,6 @@ class GunicornK8sCharm(CharmBase):
         self._stored.reldata["pg"]["ro_uris"] = [c.uri for c in event.standbys]
 
         # TODO: Emit event when we add support for read replicas
-
-    def _check_juju_config(self) -> None:
-        """Check if all the required Juju config options are set,
-        and if all the Juju config options are properly formatted
-        """
-
-        # Verify required items
-        errors = []
-        for required in REQUIRED_JUJU_CONFIG:
-            if not self.model.config[required]:
-                logger.error("Required Juju config item not set : %s", required)
-                errors.append(required)
-        if errors:
-            return "Required Juju config item(s) not set : {}".format(", ".join(sorted(errors)))
 
     def _render_template(self, tmpl: str, ctx: dict) -> str:
         """Render a Jinja2 template
