@@ -2,6 +2,7 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import logging
 
 import ops
@@ -33,6 +34,7 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
+        self.framework.observe(self.on.show_environment_context_action, self._on_show_environment_context_action)
 
         # Provide ability for Gunicorn to be scraped by Prometheus using prometheus_scrape
         self._metrics_endpoint = MetricsEndpointProvider(
@@ -169,6 +171,11 @@ class GunicornK8sCharm(CharmBase):
         """Handle the workload ready event."""
 
         self._configure_workload(event)
+
+    def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
+        """Handle event for show-environment-context action"""
+        logger.info("Action launched")
+        json.dumps(self._get_context_from_relations())
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""

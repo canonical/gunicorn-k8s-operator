@@ -1,0 +1,2 @@
+show-environment-context:
+  description: List variables available in StoredState
