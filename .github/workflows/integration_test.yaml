@@ -2,7 +2,7 @@ name: Integration tests
 
 on:
   workflow_run:
-    workflows: ["Tests"]
+    workflows: ["Tests", "Integration tests"]
     types: 
     - completed
 
