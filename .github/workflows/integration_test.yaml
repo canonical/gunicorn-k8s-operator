@@ -1,10 +1,7 @@
 name: Integration tests
 
 on:
-  workflow_run:
-    workflows: ["Tests", "Integration tests"]
-    types: 
-    - completed
+  pull_request:
 
 jobs:
   integration-tests:
