@@ -9,3 +9,7 @@ sudo microk8s kubectl -n kube-system rollout status -w deployment/coredns
 sudo microk8s kubectl -n container-registry rollout status -w deployment/registry
 sg microk8s -c "juju bootstrap microk8s k8s-ctrl"
 juju add-model testing
+for image_name in $(echo '${{ needs.get-images.outputs.images }}' | jq -cr '.[]'); do
+    docker load --input ${image_name}/${image_name}.tar
+    docker push localhost:32000/${image_name}:latest
+done
