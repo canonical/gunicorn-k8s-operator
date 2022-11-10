@@ -8,7 +8,7 @@ on:
 
 jobs:
   publish-to-edge:
-    uses: canonical/operator-workflows/.github/workflows/publish_branch.yaml@v1.0.0
+    uses: canonical/operator-workflows/.github/workflows/publish_branch.yaml@main
     secrets: inherit
     with:
       integration-test-pre-run-script: microk8s-installation.sh
