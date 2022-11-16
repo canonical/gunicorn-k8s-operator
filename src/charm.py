@@ -2,9 +2,10 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import json
 import logging
+from collections.abc import MutableMapping
 
+import json
 import ops
 import pgsql
 import yaml
@@ -175,7 +176,11 @@ class GunicornK8sCharm(CharmBase):
     def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
         """Handle event for show-environment-context action"""
         logger.info("Action launched")
-        json.dumps(self._get_context_from_relations())
+        ctx = self._get_context_from_relations()
+        ctx = list(self._flatten_dict(ctx).keys())
+        ctx.sort()
+
+        event.set_results({"available-variables": json.dumps(ctx, indent=4)})
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container."""
@@ -398,6 +403,17 @@ class GunicornK8sCharm(CharmBase):
         env = yaml.safe_load(rendered_env)
 
         return env
+
+    def _flatten_dict_gen(self, d, parent_key, sep):
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, MutableMapping):
+                yield from self._flatten_dict(v, new_key, sep=sep).items()
+            else:
+                yield new_key, v
+
+    def _flatten_dict(self, d: MutableMapping, parent_key: str = '', sep: str = '.'):
+        return dict(self._flatten_dict_gen(d, parent_key, sep))
 
 
 if __name__ == "__main__":  # pragma: no cover
