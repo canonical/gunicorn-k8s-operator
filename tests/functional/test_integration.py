@@ -1,5 +1,6 @@
 import asyncio
 
+import juju.action
 import requests
 from ops.model import ActiveStatus, Application
 from pytest_operator.plugin import OpsTest
@@ -33,3 +34,18 @@ async def test_workload_psql_var(ops_test: OpsTest, app: Application):
     response = requests.get(f"http://{address}:8080")
     assert response.status_code == 200
     assert "TEST_ENV_VAR: postgresql://gunicorn-k8s:" in response.text
+
+
+async def test_show_environment_context_action(ops_test: OpsTest, app: Application):
+    """
+    arrange: given that the gunicorn application is deployed and related to another charm
+    act: when the show-environment-context is ran
+    assert: the action result is successful and returns the expected output
+    """
+    action: juju.action.Action = await app.units[0].run_action("show-environment-context")
+    await action.wait()
+
+    assert action.status == "completed"
+    assert action.results["available-variables"]
+    assert "pg.db_uri" in action.results["available-variables"]
+    assert "influxdb.hostname" in action.results["available-variables"]

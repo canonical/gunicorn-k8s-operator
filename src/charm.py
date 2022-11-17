@@ -3,7 +3,9 @@
 # See LICENSE file for licensing details.
 
 import logging
+from collections.abc import MutableMapping
 
+import json
 import ops
 import pgsql
 import yaml
@@ -32,6 +34,7 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
+        self.framework.observe(self.on.show_environment_context_action, self._on_show_environment_context_action)
         self.framework.observe(
             self.on.statsd_prometheus_exporter_pebble_ready,
             self._on_statsd_prometheus_exporter_pebble_ready,
@@ -180,6 +183,15 @@ class GunicornK8sCharm(CharmBase):
         """Handle the workload ready event."""
 
         self._configure_workload(event)
+
+    def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
+        """Handle event for show-environment-context action"""
+        logger.info("Action show-environment-context launched")
+        ctx = self._get_context_from_relations()
+        ctx = list(self._flatten_dict(ctx).keys())
+        ctx.sort()
+
+        event.set_results({"available-variables": json.dumps(ctx, indent=4)})
 
     def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
         """Handle the workload ready event."""
@@ -389,6 +401,17 @@ class GunicornK8sCharm(CharmBase):
         env = yaml.safe_load(rendered_env)
 
         return env
+
+    def _flatten_dict_gen(self, d, parent_key, sep):
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, MutableMapping):
+                yield from self._flatten_dict(v, new_key, sep=sep).items()
+            else:
+                yield new_key, v
+
+    def _flatten_dict(self, d: MutableMapping, parent_key: str = '', sep: str = '.'):
+        return dict(self._flatten_dict_gen(d, parent_key, sep))
 
 
 if __name__ == "__main__":  # pragma: no cover

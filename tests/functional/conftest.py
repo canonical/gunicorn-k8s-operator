@@ -92,12 +92,5 @@ async def app(
         check=True,
     )
     await ops_test.model.wait_for_idle(status=ActiveStatus.name, raise_on_error=False)
-    await ops_test.juju(
-        "destroy-model",
-        f"{controller_name}:{influx_model_name}",
-        "--force",
-        "--destroy-storage",
-        "-y",
-    )
 
     yield application

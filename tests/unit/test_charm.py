@@ -443,6 +443,68 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 BlockedStatus("Charm's startup command may be wrong, please check the config"),
             )
 
+    def test_flatten_dict(self):
+        # Empty
+        dict = {}
+        expected_dict = dict
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+
+        # One level
+        dict = {'a': 1}
+        expected_dict = dict
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+
+        # One level array
+        dict = {'a': [1, 2, 3]}
+        expected_dict = dict
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+
+        # Two level
+        dict = {'a': {'b': 1, 'c': 1}, 'a2': {'b2': 2, 'c2': 2}}
+        expected_dict = {'a.b': 1, 'a.c': 1, 'a2.b2': 2, 'a2.c2': 2}
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+
+        # Three level
+        dict = {'a': {'b': {'c': 1}}}
+        expected_dict = {'a.b.c': 1}
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+
+    def test_flatten_dict_args(self):
+        dict = {'a': {'b': {'c': 1}}}
+        expected_dict = {'test._a_b_c': 1}
+
+        self.assertEqual(self.harness.charm._flatten_dict(dict, parent_key="test.", sep="_"), expected_dict)
+
+    def test_on_show_environment_context_action(self):
+        self.harness.disable_hooks()  # no need for hooks to fire for this test
+
+        # Set up PG "special case" relation data
+        reldata = self.harness.charm._stored.reldata
+        reldata["pg"] = {"conn_str": TEST_PG_CONNSTR, "db_uri": TEST_PG_URI}
+
+        # Set up PG "raw" relation data
+        relation_id = self.harness.add_relation("pg", "postgresql")
+        self.harness.add_relation_unit(relation_id, "postgresql/0")
+        self.harness.update_relation_data(relation_id, "postgresql/0", {"version": "10"})
+
+        # Set up random relation, with 2 units
+        relation_id = self.harness.add_relation("myrel", "myapp")
+        self.harness.add_relation_unit(relation_id, "myapp/0")
+        self.harness.update_relation_data(relation_id, "myapp/0", {"thing": "bli"})
+
+        mock_event = MagicMock()
+        expected = (
+            {"available-variables": '[\n    "myrel.thing",\n    "pg.conn_str",\n    "pg.db_uri",\n    "pg.version"\n]'}
+        )
+
+        self.harness.charm._on_show_environment_context_action(mock_event)
+        mock_event.set_results.assert_called_once_with(expected)
+
 
 if __name__ == "__main__":
     unittest.main()
