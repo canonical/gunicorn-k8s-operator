@@ -1,2 +1,2 @@
 show-environment-context:
-  description: List variables available in StoredState
+  description: List variables available for use in the `environment` config option

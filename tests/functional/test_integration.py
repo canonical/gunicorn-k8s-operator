@@ -46,6 +46,6 @@ async def test_show_environment_context_action(ops_test: OpsTest, app: Applicati
     await action.wait()
 
     assert action.status == "completed"
-    assert action.results['available-variables']
-    assert "pg.db_uri" in action.results['available-variables']
-    assert "influxdb.hostname" in action.results['available-variables']
+    assert action.results["available-variables"]
+    assert "pg.db_uri" in action.results["available-variables"]
+    assert "influxdb.hostname" in action.results["available-variables"]
