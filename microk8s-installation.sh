@@ -13,12 +13,13 @@ sudo microk8s kubectl -n kube-system rollout status -w deployment/coredns
 # Adding authentication for ghcr.io for containerd as per https://microk8s.io/docs/registry-private
 # Note: containerd has to be restarted for the changes to take effect
 # (https://github.com/containerd/cri/blob/master/docs/registry.md)
-env
-sudo su -c 'cat << "EOF"
+sudo cat << "EOF"
 [plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
 username = "${GITHUB_ACTOR}"
 password = "${GITHUB_TOKEN}"
-EOF >> /var/snap/microk8s/current/args/containerd-template.toml'
-sudo su -c 'systemctl restart snap.microk8s.daemon-containerd.service && microk8s status --wait-ready'
+EOF >> /var/snap/microk8s/current/args/containerd-template.toml
+cat /var/snap/microk8s/current/args/containerd-template.toml
+sudo systemctl restart snap.microk8s.daemon-containerd.service
+microk8s status --wait-ready
 sg microk8s -c "juju bootstrap microk8s k8s-ctrl"
 juju add-model testing
