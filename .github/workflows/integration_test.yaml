@@ -3,9 +3,6 @@ name: Integration tests
 on:
   pull_request:
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   integration-tests:
     uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@main

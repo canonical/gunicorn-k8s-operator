@@ -186,7 +186,7 @@ class GunicornK8sCharm(CharmBase):
 
     def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
         """Handle event for show-environment-context action"""
-        logger.info("Action launched")
+        logger.info("Action show-environment-context launched")
         ctx = self._get_context_from_relations()
         ctx = list(self._flatten_dict(ctx).keys())
         ctx.sort()
