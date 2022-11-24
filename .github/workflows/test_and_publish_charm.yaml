@@ -19,5 +19,5 @@ jobs:
     uses: canonical/operator-workflows/.github/workflows/test_and_publish_charm.yaml@main
     secrets: inherit
     with:
-        pre-run-script: microk8s-installation.sh
+        integration-test-pre-run-script: microk8s-installation.sh
         provider: lxd
