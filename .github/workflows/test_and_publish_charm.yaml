@@ -8,6 +8,7 @@ name: Publish to edge
 # charmhub edge channel.
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -15,8 +16,5 @@ on:
 
 jobs:
   publish-to-edge:
-    uses: canonical/operator-workflows/.github/workflows/on_push.yaml@main
+    uses: canonical/operator-workflows/.github/workflows/test_and_publish_charm.yaml@main
     secrets: inherit
-    with:
-      integration-test-pre-run-script: microk8s-installation.sh
-      integration-test-provider: lxd
