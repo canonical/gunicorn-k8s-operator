@@ -10,7 +10,7 @@ RUN apt-get update \
 
 WORKDIR /srv/gunicorn/
 
-COPY ./docker/run .
+COPY ./docker/run.sh run
 RUN chmod +x run
 
 CMD /srv/gunicorn/run

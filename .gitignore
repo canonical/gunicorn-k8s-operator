@@ -1,6 +1,7 @@
 *~
 *swp
 *.charm
+*.rock
 .tox
 .coverage
 .vscode

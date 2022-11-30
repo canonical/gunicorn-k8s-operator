@@ -1,6 +1,7 @@
 /env
 *.py[cod]
 *.charm
+*.rock
 .pytest_cache
 docker
 *swp
