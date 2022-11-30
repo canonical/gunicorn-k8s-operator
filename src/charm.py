@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Copyright 2020 Canonical Ltd.
+# Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import logging
 from collections.abc import MutableMapping
 
-import json
 import ops
 import pgsql
 import yaml
