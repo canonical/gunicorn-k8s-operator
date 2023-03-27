@@ -4,6 +4,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+from unittest import mock
 
 from ops import pebble, testing
 from ops.model import BlockedStatus
@@ -431,8 +432,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
                 self.assertEqual(r, expected_ret)
             self.assertTrue(expected_output in logger.output[0])
 
-    def test_configure_workload_exception(self):
-
+    @mock.patch("ops.model.Container.can_connect")
+    @mock.patch("ops.model.Container.add_layer")
+    def test_configure_workload_exception(self,add_layer, can_connect):
+        add_layer.return_value = None
+        can_connect.return_value = True
         mock_event = MagicMock()
 
         with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
