@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
+# pylint: disable=C,R
+# flake8: noqa
 
 import json
 import logging
@@ -34,7 +36,9 @@ class GunicornK8sCharm(CharmBase):
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.gunicorn_pebble_ready, self._on_gunicorn_pebble_ready)
-        self.framework.observe(self.on.show_environment_context_action, self._on_show_environment_context_action)
+        self.framework.observe(
+            self.on.show_environment_context_action, self._on_show_environment_context_action
+        )
         self.framework.observe(
             self.on.statsd_prometheus_exporter_pebble_ready,
             self._on_statsd_prometheus_exporter_pebble_ready,
@@ -410,7 +414,7 @@ class GunicornK8sCharm(CharmBase):
             else:
                 yield new_key, v
 
-    def _flatten_dict(self, d: MutableMapping, parent_key: str = '', sep: str = '.'):
+    def _flatten_dict(self, d: MutableMapping, parent_key: str = "", sep: str = "."):
         return dict(self._flatten_dict_gen(d, parent_key, sep))
 
 
