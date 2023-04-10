@@ -1,3 +1,9 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Fixtures for Gunicorn charm integration tests."""
+
+# pylint: disable=redefined-outer-name, stop-iteration-return
 from pathlib import Path
 
 import pytest
@@ -8,13 +14,14 @@ from pytest_operator.plugin import OpsTest
 
 
 def pytest_addoption(parser):
+    """Parse additional pytest options."""
     parser.addoption("--gunicorn-image", action="store")
 
 
 @pytest.fixture(scope="module")
 def metadata():
     """Provides charm metadata."""
-    yield yaml.safe_load(Path("./metadata.yaml").read_text())
+    yield yaml.safe_load(Path("./metadata.yaml").read_text("utf-8"))
 
 
 @pytest.fixture(scope="module")
@@ -22,7 +29,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
     """Get the gunicorn image."""
     value: None | str = pytestconfig.getoption("--gunicorn-image")
     assert value is not None, "please specify the --gunicorn-image command line option"
-    return value
+    yield value
 
 
 @pytest.fixture(scope="module")
@@ -83,6 +90,7 @@ async def app(
         "gunicorn-image": gunicorn_image,
         "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
+    assert ops_test.model
     application = await ops_test.model.deploy(charm, resources=resources, series="focal")
     await ops_test.model.deploy("postgresql-k8s")
     await ops_test.model.add_relation(
@@ -95,6 +103,8 @@ async def app(
         f"{controller_name}:admin/{influx_model_name}.influxoffer",
         check=True,
     )
-    await ops_test.model.wait_for_idle(status=ActiveStatus.name, raise_on_error=False)
+    # mypy has difficulty with ActiveStatus
+    expected_status = ActiveStatus.name  # type: ignore
+    await ops_test.model.wait_for_idle(status=expected_status, raise_on_error=False)
 
     yield application
