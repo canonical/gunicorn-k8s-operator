@@ -3,6 +3,7 @@
 
 """Fixtures for Gunicorn charm integration tests."""
 
+# Disable until linting is addressed
 # pylint: disable=redefined-outer-name, stop-iteration-return
 from pathlib import Path
 
