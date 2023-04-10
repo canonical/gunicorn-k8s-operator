@@ -2,6 +2,7 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""Charm for Gunicorn on kubernetes."""
 import json
 import logging
 from collections.abc import MutableMapping
@@ -26,10 +27,13 @@ JUJU_CONFIG_YAML_DICT_ITEMS = ["environment"]
 
 
 class GunicornK8sCharm(CharmBase):
+    """Charm for Gunicorn on kubernetes."""
+
     _stored = StoredState()
     _log_path = "/var/log/gunicorn.log"
 
     def __init__(self, *args):
+        """Construct."""
         super().__init__(*args)
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
@@ -101,8 +105,7 @@ class GunicornK8sCharm(CharmBase):
             self._configure_workload(event)
 
     def _get_external_hostname(self) -> str:
-        """Assign the hostname according to the config option.
-        If empty, default to the app name."""
+        """Assign the hostname according to the config option. If empty, default to the app name."""
         hostname = self.config["external_hostname"]
         if hostname == "":
             hostname = self.app.name
@@ -178,16 +181,14 @@ class GunicornK8sCharm(CharmBase):
 
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
         """Handle the config changed event."""
-
         self._configure_workload(event)
 
     def _on_gunicorn_pebble_ready(self, event: ops.framework.EventBase) -> None:
         """Handle the workload ready event."""
-
         self._configure_workload(event)
 
     def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
-        """Handle event for show-environment-context action"""
+        """Handle event for show-environment-context action."""
         logger.info("Action show-environment-context launched")
         ctx = self._get_context_from_relations()
         ctx = list(self._flatten_dict(ctx).keys())
@@ -197,7 +198,6 @@ class GunicornK8sCharm(CharmBase):
 
     def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
         """Handle the workload ready event."""
-
         self._configure_workload(event)
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
@@ -244,7 +244,7 @@ class GunicornK8sCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _init_postgresql_relation(self) -> None:
-        """Initialization related to the postgresql relation"""
+        """Initialize related to the postgresql relation."""
         if "pg" not in self._stored.reldata:
             self._stored.reldata["pg"] = {}
         self.pg = pgsql.PostgreSQLClient(self, "pg")
@@ -293,9 +293,10 @@ class GunicornK8sCharm(CharmBase):
         # TODO: Emit event when we add support for read replicas
 
     def _render_template(self, tmpl: str, ctx: dict) -> str:
-        """Render a Jinja2 template
+        """Render a Jinja2 template.
 
-        :returns: A rendered Jinja2 template
+        Returns:
+            A rendered Jinja2 template.
         """
         j2env = Environment(loader=BaseLoader(), autoescape=True)
         j2template = j2env.from_string(tmpl)
@@ -303,10 +304,10 @@ class GunicornK8sCharm(CharmBase):
         return j2template.render(**ctx)
 
     def _get_context_from_relations(self) -> dict:
-        """Build a template context from relation data - to be used for Jinja2
-        template rendering
+        """Build a template context from relation data. Used for Jinja2 template rendering.
 
-        :returns: A dict with relation data that can be used as context for Jinja2 template rendering
+        Returns:
+            A dict with relation data that can be used as context for Jinja2 template rendering.
         """
         ctx = {}
 
@@ -374,7 +375,8 @@ class GunicornK8sCharm(CharmBase):
     def _make_pod_env(self) -> dict:
         """Return an envConfig with some core configuration.
 
-        :returns: A dictionary used for envConfig in podspec
+        Returns:
+            A dictionary used for envConfig in podspec.
         """
         env = self.model.config["environment"]
 

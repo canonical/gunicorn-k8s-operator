@@ -7,12 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from ops import pebble, testing
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
-from scenario import (
-    JUJU_DEFAULT_CONFIG,
-    TEST_PG_CONNSTR,
-    TEST_PG_URI,
-    TEST_RENDER_TEMPLATE,
-)
+from scenario import JUJU_DEFAULT_CONFIG, TEST_PG_CONNSTR, TEST_PG_URI, TEST_RENDER_TEMPLATE
 
 from charm import GunicornK8sCharm
 

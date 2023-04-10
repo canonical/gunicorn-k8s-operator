@@ -7,6 +7,10 @@ from ops.model import ActiveStatus
 from pytest_operator.plugin import OpsTest
 
 
+def pytest_addoption(parser):
+    parser.addoption("--gunicorn-image", action="store")
+
+
 @pytest.fixture(scope="module")
 def metadata():
     """Provides charm metadata."""
