@@ -19,7 +19,7 @@ parts:
     - bash
     - gunicorn
     - python3-psycopg2
-    plugin: dump
+    plugin: nil
     source: ./docker/
     organize:
       run: srv/gunicorn/run
