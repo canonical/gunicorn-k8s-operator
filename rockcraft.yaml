@@ -4,7 +4,7 @@ description: Runs a basic gunicorn workload that dumps environment variables to 
 license: Apache-2.0
 
 version: "1.0"
-base: bare
+base: ubuntu:22.04
 build_base: ubuntu:22.04
 cmd: [/srv/gunicorn/run]
 env:
@@ -24,3 +24,6 @@ parts:
     organize:
       run: srv/gunicorn/run
       app/app.py: srv/gunicorn/app/app.py
+    override-stage: |
+      craftctl default
+      chmod +x $CRAFT_STAGE/srv/gunicorn/run
