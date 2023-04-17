@@ -7,7 +7,24 @@ docs: https://discourse.charmhub.io/t/gunicorn-docs-index/4606
 maintainers:
   - launchpad.net/~canonical-is-devops
 issues: https://github.com/canonical/gunicorn-k8s-operator/issues
-description: A charm for deploying and managing Gunicorn workloads.
+description: |
+  A [Juju](https://juju.is/) [charm](https://juju.is/docs/olm/charmed-operators)
+  deploying docker images using [gunicorn](https://gunicorn.org/) as default. 
+
+  This charm simplifies docker image deployment management, 
+  allowing us to inject variables to the environment as we see fit. It allows for deployment on
+  many different Kubernetes platforms, from [MicroK8s](https://microk8s.io) to
+  [Charmed Kubernetes](https://ubuntu.com/kubernetes) to public cloud Kubernetes
+  offerings.
+
+  As such, the charm makes it easy for those looking to take control of their docker images, 
+  use them in a juju environment without having to write a charm from scratch and gives them the
+  freedom to deploy on the Kubernetes platform of their choice.
+
+  For DevOps or SRE teams this charm will make docker image testing easier and more manageable. 
+  It will allow easy deployment into multiple environments for testing of changes,
+  and supports scaling out for enterprise deployments.
+source: https://github.com/canonical/gunicorn-k8s-operator
 assumes:
   - k8s-api
 

@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-# flake8: noqa
 
 """Test for the gunicorn charm."""
 
 import unittest
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from ops import pebble, testing
-from ops.model import BlockedStatus
-from scenario import (
-    JUJU_DEFAULT_CONFIG,
-    TEST_PG_CONNSTR,
-    TEST_PG_URI,
-    TEST_RENDER_TEMPLATE,
-)
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from scenario import JUJU_DEFAULT_CONFIG, TEST_PG_CONNSTR, TEST_PG_URI, TEST_RENDER_TEMPLATE
 
 from charm import GunicornK8sCharm
 
@@ -405,39 +398,35 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._configure_workload(mock_event)
         self.assertEqual(r, expected_ret)
 
-    def test_configure_workload_pebble_not_ready(self):
-        mock_event = MagicMock()
-        expected_ret = None
-        expected_output = "waiting for pebble to start"
-        with patch("ops.model.Container.can_connect") as can_connect:
-            can_connect.side_effect = [False, True]
+    def test_configure_workload_gunicorn_pebble_not_ready(self):
+        self.harness.container_pebble_ready("statsd-prometheus-exporter")
+        self.assertEqual(
+            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
+        )
 
-            with self.assertLogs(level="DEBUG") as logger:
-                r = self.harness.charm._configure_workload(mock_event)
-                self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
-        with patch("ops.model.Container.can_connect") as can_connect:
-            can_connect.side_effect = [True, False]
+    def test_configure_workload_statsd_pebble_not_ready(self):
+        self.harness.container_pebble_ready("gunicorn")
+        self.assertEqual(
+            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
+        )
 
-            with self.assertLogs(level="DEBUG") as logger:
-                r = self.harness.charm._configure_workload(mock_event)
-                self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
-
-    @mock.patch("ops.model.Container.can_connect")
-    @mock.patch("ops.model.Container.add_layer")
-    def test_configure_workload_exception(self, add_layer, can_connect):
-        add_layer.return_value = None
-        can_connect.return_value = True
-        mock_event = MagicMock()
-
+    def test_configure_workload_exception(self):
         with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
             pebble_mock.replan_services.side_effect = pebble.ChangeError("abc", "def")
-            self.harness.charm._configure_workload(mock_event)
+            self.harness.container_pebble_ready("gunicorn")
+            self.harness.container_pebble_ready("statsd-prometheus-exporter")
             self.assertEqual(
                 self.harness.model.unit.status,
                 BlockedStatus("Charm's startup command may be wrong, please check the config"),
             )
+
+    def test_configure_workload(self):
+        self.harness.container_pebble_ready("gunicorn")
+        self.harness.container_pebble_ready("statsd-prometheus-exporter")
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ActiveStatus(),
+        )
 
     def test_flatten_dict(self):
         # Empty
