@@ -6,19 +6,13 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from ops import pebble, testing
-from ops.model import BlockedStatus
-from scenario import (
-    JUJU_DEFAULT_CONFIG,
-    TEST_PG_CONNSTR,
-    TEST_PG_URI,
-    TEST_RENDER_TEMPLATE,
-)
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from scenario import JUJU_DEFAULT_CONFIG, TEST_PG_CONNSTR, TEST_PG_URI, TEST_RENDER_TEMPLATE
 
 from charm import GunicornK8sCharm
 
 
 class TestGunicornK8sCharm(unittest.TestCase):
-
     maxDiff = None  # Full diff when there is an error
 
     def setUp(self):
@@ -240,7 +234,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, None)
 
     def test_validate_yaml_incorrect_yaml(self):
-
         test_str = "a: :"
         expected_type = dict
         expected_output = [
@@ -257,7 +250,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(sorted(logger.output), expected_output)
 
     def test_validate_yaml_incorrect_type_proper_yaml(self):
-
         test_str = "a: b"
         expected_type = str
         expected_output = [
@@ -271,7 +263,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(sorted(logger.output), expected_output)
 
     def test_get_external_hostname_not_empty(self):
-
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"external_hostname": "123"})
         expected_ret = "123"
@@ -280,7 +271,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret)
 
     def test_get_external_hostname_empty(self):
-
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"external_hostname": ""})
         expected_ret = "gunicorn-k8s"
@@ -299,7 +289,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret, "No env")
 
     def test_make_pod_env_proper_env_no_temp_rel(self):
-
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "a: b"})
         expected_ret = {"a": "b"}
@@ -308,7 +297,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret)
 
     def test_make_pod_env_proper_env_temp_rel(self):
-
         # Proper env with templating/relations
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "DB: {{pg.db_uri}}\nTHING: {{myrel.thing}}}"})
@@ -330,7 +318,6 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(r, expected_ret)
 
     def test_make_pod_env_improper_env(self):
-
         # Improper env
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "a: :"})
@@ -411,37 +398,35 @@ class TestGunicornK8sCharm(unittest.TestCase):
         r = self.harness.charm._configure_workload(mock_event)
         self.assertEqual(r, expected_ret)
 
-    def test_configure_workload_pebble_not_ready(self):
+    def test_configure_workload_gunicorn_pebble_not_ready(self):
+        self.harness.container_pebble_ready("statsd-prometheus-exporter")
+        self.assertEqual(
+            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
+        )
 
-        mock_event = MagicMock()
-        expected_ret = None
-        expected_output = "waiting for pebble to start"
-        with patch("ops.model.Container.can_connect") as can_connect:
-            can_connect.side_effect = [False, True]
-
-            with self.assertLogs(level="DEBUG") as logger:
-                r = self.harness.charm._configure_workload(mock_event)
-                self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
-        with patch("ops.model.Container.can_connect") as can_connect:
-            can_connect.side_effect = [True, False]
-
-            with self.assertLogs(level="DEBUG") as logger:
-                r = self.harness.charm._configure_workload(mock_event)
-                self.assertEqual(r, expected_ret)
-            self.assertTrue(expected_output in logger.output[0])
+    def test_configure_workload_statsd_pebble_not_ready(self):
+        self.harness.container_pebble_ready("gunicorn")
+        self.assertEqual(
+            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
+        )
 
     def test_configure_workload_exception(self):
-
-        mock_event = MagicMock()
-
         with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
             pebble_mock.replan_services.side_effect = pebble.ChangeError("abc", "def")
-            self.harness.charm._configure_workload(mock_event)
+            self.harness.container_pebble_ready("gunicorn")
+            self.harness.container_pebble_ready("statsd-prometheus-exporter")
             self.assertEqual(
                 self.harness.model.unit.status,
                 BlockedStatus("Charm's startup command may be wrong, please check the config"),
             )
+
+    def test_configure_workload(self):
+        self.harness.container_pebble_ready("gunicorn")
+        self.harness.container_pebble_ready("statsd-prometheus-exporter")
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ActiveStatus(),
+        )
 
     def test_flatten_dict(self):
         # Empty
@@ -451,34 +436,36 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
 
         # One level
-        dict = {'a': 1}
+        dict = {"a": 1}
         expected_dict = dict
 
         self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
 
         # One level array
-        dict = {'a': [1, 2, 3]}
+        dict = {"a": [1, 2, 3]}
         expected_dict = dict
 
         self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
 
         # Two level
-        dict = {'a': {'b': 1, 'c': 1}, 'a2': {'b2': 2, 'c2': 2}}
-        expected_dict = {'a.b': 1, 'a.c': 1, 'a2.b2': 2, 'a2.c2': 2}
+        dict = {"a": {"b": 1, "c": 1}, "a2": {"b2": 2, "c2": 2}}
+        expected_dict = {"a.b": 1, "a.c": 1, "a2.b2": 2, "a2.c2": 2}
 
         self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
 
         # Three level
-        dict = {'a': {'b': {'c': 1}}}
-        expected_dict = {'a.b.c': 1}
+        dict = {"a": {"b": {"c": 1}}}
+        expected_dict = {"a.b.c": 1}
 
         self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
 
     def test_flatten_dict_args(self):
-        dict = {'a': {'b': {'c': 1}}}
-        expected_dict = {'test._a_b_c': 1}
+        dict = {"a": {"b": {"c": 1}}}
+        expected_dict = {"test._a_b_c": 1}
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict, parent_key="test.", sep="_"), expected_dict)
+        self.assertEqual(
+            self.harness.charm._flatten_dict(dict, parent_key="test.", sep="_"), expected_dict
+        )
 
     def test_on_show_environment_context_action(self):
         self.harness.disable_hooks()  # no need for hooks to fire for this test
@@ -498,9 +485,9 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.update_relation_data(relation_id, "myapp/0", {"thing": "bli"})
 
         mock_event = MagicMock()
-        expected = (
-            {"available-variables": '[\n    "myrel.thing",\n    "pg.conn_str",\n    "pg.db_uri",\n    "pg.version"\n]'}
-        )
+        expected = {
+            "available-variables": '[\n    "myrel.thing",\n    "pg.conn_str",\n    "pg.db_uri",\n    "pg.version"\n]'
+        }
 
         self.harness.charm._on_show_environment_context_action(mock_event)
         mock_event.set_results.assert_called_once_with(expected)
