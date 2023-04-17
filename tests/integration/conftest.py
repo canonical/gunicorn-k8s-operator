@@ -71,6 +71,8 @@ async def app(
         "influxdb",
         "--model",
         f"{controller_name}:{influx_model_name}",
+        "--channel",
+        "edge",
         check=True,
     )
     await ops_test.juju(
