@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
 
 exec gunicorn $APP_WSGI \
   --name=$APP_NAME \
