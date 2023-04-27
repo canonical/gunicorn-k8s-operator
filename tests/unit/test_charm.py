@@ -2,6 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 # pylint: disable=protected-access
+
 """Test for the gunicorn charm."""
 
 import unittest
