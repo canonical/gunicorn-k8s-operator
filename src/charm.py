@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
+# Since there are several cases of this mypy error and we cannot stop using
+# what mypy considers to be overloaded functions, the index check on mypy must be ignored.
+# mypy: disable-error-code=index
+# pylint: disable=fixme
 
 """Charm for Gunicorn on kubernetes."""
 import json
@@ -33,7 +37,11 @@ class GunicornK8sCharm(CharmBase):
     _log_path = "/var/log/gunicorn.log"
 
     def __init__(self, *args):
-        """Construct."""
+        """Construct.
+
+        Args:
+            args: Variable list of positional arguments passed to the parent constructor.
+        """
         super().__init__(*args)
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
@@ -93,27 +101,48 @@ class GunicornK8sCharm(CharmBase):
         self._init_postgresql_relation()
 
     def _mongodb_client_relation_changed(self, event: ops.framework.EventBase) -> None:
-        """Handle changes to the MongoDB relation."""
-        if "mongodb" not in self._stored.reldata:
+        """Handle changes to the MongoDB relation.
+
+        Args:
+            event: Event that triggers this handler.
+        """
+        # mypy does not recognize the operand type
+        if "mongodb" not in self._stored.reldata:  # type: ignore[operator]
             self._stored.reldata["mongodb"] = {}
 
         initial = dict(self._stored.reldata["mongodb"])
         self._stored.reldata["mongodb"].update(
-            self.mongodb.fetch_relation_data()[event.relation.id]
+            # Ignore the attr-defined error since we cannot modify the MongoDB class here
+            self.mongodb.fetch_relation_data()[event.relation.id]  # type: ignore[attr-defined]
         )
         if initial != self._stored.reldata["mongodb"]:
             self._configure_workload(event)
 
     def _get_external_hostname(self) -> str:
-        """Assign the hostname according to the config option. If empty, default to the app name."""
+        """Assign the hostname according to the config option.
+
+        If empty, default to the app name.
+
+        Returns:
+            The assigned hostname.
+        """
         hostname = self.config["external_hostname"]
         if hostname == "":
             hostname = self.app.name
         return hostname
 
     def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> dict:
-        """Generate gunicorn's container pebble config."""
+        """Generate gunicorn's container pebble config.
+
+        Args:
+            event: Event that triggers this handler.
+
+        Returns:
+            Gunicorn container's pebble config
+        """
         port = self.config["external_port"]
+        # We use similar fields in the unit test, disable pylint warning.
+        # pylint: disable=R0801
         pebble_config = {
             "summary": "gunicorn layer",
             "description": "gunicorn layer",
@@ -133,19 +162,21 @@ class GunicornK8sCharm(CharmBase):
                 },
             },
         }
+        # pylint: enable=R0801
 
         # Update pod environment config.
         pod_env_config = self._make_pod_env()
-        if type(pod_env_config) is bool:
+        if isinstance(pod_env_config, bool):
             logger.error(
                 "Error getting pod_env_config: %s",
-                "Could not parse Juju config 'environment' as a YAML dict - check \"juju debug-log -l ERROR\"",
+                "Could not parse Juju config 'environment' as a YAML dict - check "
+                '"juju debug-log -l ERROR"',
             )
             self.unit.status = BlockedStatus("Error getting pod_env_config")
             return {}
-        elif type(pod_env_config) is set:
+        if isinstance(pod_env_config, set):
             self.unit.status = BlockedStatus(
-                "Waiting for {} relation(s)".format(", ".join(sorted(pod_env_config)))
+                f"Waiting for {', '.join(sorted(pod_env_config))} relation(s)"
             )
             event.defer()
             return {}
@@ -154,8 +185,12 @@ class GunicornK8sCharm(CharmBase):
             pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
         return pebble_config
 
-    def _get_statsd_pebble_config(self, event: ops.framework.EventBase) -> dict:
-        """Generate statsd exporter pebble config."""
+    def _get_statsd_pebble_config(self) -> dict:
+        """Generate statsd exporter pebble config.
+
+        Returns:
+            Statsd container's pebble config
+        """
         pebble_config = {
             "summary": "statsd exporter layer",
             "description": "statsd exporter layer",
@@ -180,33 +215,54 @@ class GunicornK8sCharm(CharmBase):
         return pebble_config
 
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
-        """Handle the config changed event."""
+        """Handle the config changed event.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         self._configure_workload(event)
 
     def _on_gunicorn_pebble_ready(self, event: ops.framework.EventBase) -> None:
-        """Handle the workload ready event."""
+        """Handle the workload ready event.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         self._configure_workload(event)
 
     def _on_show_environment_context_action(self, event: ops.charm.ActionEvent) -> None:
-        """Handle event for show-environment-context action."""
+        """Handle event for show-environment-context action.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         logger.info("Action show-environment-context launched")
         ctx = self._get_context_from_relations()
-        ctx = list(self._flatten_dict(ctx).keys())
-        ctx.sort()
+        #  mypy ignores the cast to list
+        ctx = list(self._flatten_dict(ctx).keys())  # type: ignore[assignment]
+        ctx.sort()  # type: ignore[attr-defined]
 
         event.set_results({"available-variables": json.dumps(ctx, indent=4)})
 
     def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
-        """Handle the workload ready event."""
+        """Handle the workload ready event.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         self._configure_workload(event)
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
-        """Configure the workload container."""
+        """Configure the workload container.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         gunicorn_pebble_config = self._get_gunicorn_pebble_config(event)
         if not gunicorn_pebble_config:
             # Charm will be in blocked status.
             return
-        statsd_pebble_config = self._get_statsd_pebble_config(event)
+        statsd_pebble_config = self._get_statsd_pebble_config()
 
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config(
@@ -245,9 +301,11 @@ class GunicornK8sCharm(CharmBase):
 
     def _init_postgresql_relation(self) -> None:
         """Initialize related to the postgresql relation."""
-        if "pg" not in self._stored.reldata:
-            self._stored.reldata["pg"] = {}
-        self.pg = pgsql.PostgreSQLClient(self, "pg")
+        # mypy does not recognize the operand type
+        if "pg" not in self._stored.reldata:  # type: ignore[operator]
+            # pylint conflicts with "pg" but the name of the interface can't be changed.
+            self._stored.reldata["pg"] = {}  # pylint: disable=invalid-name
+        self.pg = pgsql.PostgreSQLClient(self, "pg")  # pylint: disable=invalid-name
         self.framework.observe(
             self.pg.on.database_relation_joined, self._on_database_relation_joined
         )
@@ -255,7 +313,11 @@ class GunicornK8sCharm(CharmBase):
         self.framework.observe(self.pg.on.standby_changed, self._on_standby_changed)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent) -> None:
-        """Handle db-relation-joined."""
+        """Handle db-relation-joined.
+
+        Args:
+            event: -Event that triggers this handler.
+        """
         if self.model.unit.is_leader():
             # Provide requirements to the PostgreSQL server.
             event.database = self.app.name  # Request database named like the Juju app
@@ -265,7 +327,11 @@ class GunicornK8sCharm(CharmBase):
             event.defer()
 
     def _on_master_changed(self, event: pgsql.MasterChangedEvent) -> None:
-        """Handle changes in the primary database unit."""
+        """Handle changes in the primary database unit.
+
+        Args:
+            event: Event that triggers this handler.
+        """
         if event.database != self.app.name:
             # Leader has not yet set requirements. Wait until next
             # event, or risk connecting to an incorrect database.
@@ -282,7 +348,11 @@ class GunicornK8sCharm(CharmBase):
         self._on_config_changed(event)
 
     def _on_standby_changed(self, event: pgsql.StandbyChangedEvent) -> None:
-        """Handle changes in the secondary database unit(s)."""
+        """Handle changes in the secondary database unit(s).
+
+        Args:
+            event: Event that triggers this handler.
+        """
         if event.database != self.app.name:
             # Leader has not yet set requirements. Wait until next
             # event, or risk connecting to an incorrect database.
@@ -294,6 +364,10 @@ class GunicornK8sCharm(CharmBase):
 
     def _render_template(self, tmpl: str, ctx: dict) -> str:
         """Render a Jinja2 template.
+
+        Args:
+            tmpl: Jinja2 template.
+            ctx: Context to render.
 
         Returns:
             A rendered Jinja2 template.
@@ -312,7 +386,7 @@ class GunicornK8sCharm(CharmBase):
         ctx = {}
 
         # Add variables from "special" relations
-        for rel in self._stored.reldata:
+        for rel in self._stored.reldata:  # type: ignore[index, attr-defined]
             if self._stored.reldata[rel]:
                 ctx[str(rel)] = self._stored.reldata[rel]
 
@@ -332,7 +406,7 @@ class GunicornK8sCharm(CharmBase):
                 if len(rel.units) > 0:
                     # We want to always pick the same unit, so sort the set
                     # before picking the first one.
-                    u = sorted(rel.units, key=lambda x: x.name)[0]
+                    unit = sorted(rel.units, key=lambda x: x.name)[0]
 
                     if len(rel.units) > 1:
                         logger.warning(
@@ -340,24 +414,32 @@ class GunicornK8sCharm(CharmBase):
                             "using only the first one (id: %s) for relation data.",
                             rel.name,
                             rel.id,
-                            u.name,
+                            unit.name,
                         )
                     if rel.name not in ctx:  # can be present from the "special" relations above
                         ctx[rel.name] = {}
-                    for k, v in rel.data[u].items():
-                        ctx[rel.name][k] = v
+                    for key, value in rel.data[unit].items():
+                        ctx[rel.name][key] = value
 
         return ctx
 
-    def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> None:
-        """Validate that the supplied YAML is parsed into the supplied type."""
+    def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> bool | None:
+        """Validate that the supplied YAML is parsed into the supplied type.
+
+        Args:
+            supposed_yaml: Yaml content to validate.
+            expected_type: Expected yaml type.
+
+        Returns:
+            An error if the validation goes wrong.
+        """
         err = False
         parsed = None
 
         try:
             parsed = yaml.safe_load(supposed_yaml)
-        except yaml.scanner.ScannerError as e:
-            logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, e)
+        except yaml.scanner.ScannerError as error:
+            logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, error)
             err = True
         else:
             if not isinstance(parsed, expected_type):
@@ -372,7 +454,9 @@ class GunicornK8sCharm(CharmBase):
         if err:
             return err
 
-    def _make_pod_env(self) -> dict:
+        return None
+
+    def _make_pod_env(self) -> dict | bool | set | str:
         """Return an envConfig with some core configuration.
 
         Returns:
@@ -385,7 +469,8 @@ class GunicornK8sCharm(CharmBase):
 
         ctx = self._get_context_from_relations()
 
-        j2env = Environment(loader=BaseLoader, autoescape=True)
+        # Using BaseLoader without Optional[] throws a mypy error, we'll ignore it.
+        j2env = Environment(loader=BaseLoader, autoescape=True)  # type: ignore[arg-type]
         j2template = j2env.parse(env)
         missing_vars = set()
 
@@ -406,16 +491,36 @@ class GunicornK8sCharm(CharmBase):
 
         return env
 
-    def _flatten_dict_gen(self, d, parent_key, sep):
-        for k, v in d.items():
-            new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, MutableMapping):
-                yield from self._flatten_dict(v, new_key, sep=sep).items()
-            else:
-                yield new_key, v
+    def _flatten_dict_gen(self, dict_to_flatten, parent_key, sep):
+        """Flatten a dictionary.
 
-    def _flatten_dict(self, d: MutableMapping, parent_key: str = "", sep: str = "."):
-        return dict(self._flatten_dict_gen(d, parent_key, sep))
+        Args:
+            dict_to_flatten: Dictionary to flatten.
+            parent_key: Parent key from the dict.
+            sep: Key separator.
+
+        Yields:
+            Flattened key-value pairs.
+        """
+        for key, value in dict_to_flatten.items():
+            new_key = parent_key + sep + key if parent_key else key
+            if isinstance(value, MutableMapping):
+                yield from self._flatten_dict(value, new_key, sep=sep).items()
+            else:
+                yield new_key, value
+
+    def _flatten_dict(self, dict_to_flatten: MutableMapping, parent_key: str = "", sep: str = "."):
+        """Flatten a dictionary.
+
+        Args:
+            dict_to_flatten: Dictionary to flatten.
+            parent_key: Parent key from the dict.
+            sep: Key separator.
+
+        Returns:
+            A flattened dict.
+        """
+        return dict(self._flatten_dict_gen(dict_to_flatten, parent_key, sep))
 
 
 if __name__ == "__main__":  # pragma: no cover

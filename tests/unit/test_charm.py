@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+# pylint: disable=protected-access
 """Test for the gunicorn charm."""
 
 import unittest
@@ -7,13 +9,24 @@ from unittest.mock import MagicMock, patch
 
 from ops import pebble, testing
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
-from scenario import JUJU_DEFAULT_CONFIG, TEST_PG_CONNSTR, TEST_PG_URI, TEST_RENDER_TEMPLATE
+from scenario import (  # pylint: disable=import-error
+    JUJU_DEFAULT_CONFIG,
+    TEST_PG_CONNSTR,
+    TEST_PG_URI,
+    TEST_RENDER_TEMPLATE,
+)
 
 from charm import GunicornK8sCharm
 
 
-class TestGunicornK8sCharm(unittest.TestCase):
-    maxDiff = None  # Full diff when there is an error
+class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-public-methods
+    """Class for charm testing.
+
+    Attrs:
+        maxDiff: Full diff when there is an error.
+    """
+
+    maxDiff = None
 
     def setUp(self):
         """Setup the harness object."""
@@ -27,8 +40,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.cleanup()
 
     def test_init_postgresql_relation(self):
-        """Test the _init_postgresql_relation function."""
-
+        """
+        arrange: given the deployed charm
+        act: initiate the postgresql relation
+        assert: the relation data has the correct values
+        """
         # We'll only test the case where _stored already
         # has content. _stored being empty is basically tested
         # by all the other functions
@@ -41,8 +57,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.assertEqual(charm._stored.reldata, mock_stored.reldata)
 
     def test_on_database_relation_joined_unit_is_leader(self):
-        """Test the _on_database_relation_joined function."""
-
+        """
+        arrange: given the deployed charm
+        act: handle the database relation joined event
+        assert: the event is handled successfully
+        """
         mock_event = MagicMock()
         self.harness.disable_hooks()  # we don't want leader-set to fire
         self.harness.set_leader(True)
@@ -52,6 +71,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(mock_event.database, self.harness.charm.app.name)
 
     def test_on_database_relation_joined_unit_is_not_leader(self):
+        """
+        arrange: given the deployed charm
+        act: handle the database relation joined event
+        assert: the event is handled successfully
+        """
         mock_event = MagicMock()
         self.harness.disable_hooks()  # we don't want leader-set to fire
         self.harness.set_leader(False)
@@ -65,29 +89,34 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.harness.set_leader(False)
         mock_event.database = self.harness.charm.app.name
 
-        r = self.harness.charm._on_database_relation_joined(mock_event)
-        self.assertEqual(r, None)
+        result = self.harness.charm._on_database_relation_joined(mock_event)
+        self.assertEqual(result, None)
 
     def test_on_master_changed(self):
-        """Test the _on_master_changed function."""
-
+        """
+        arrange: given the deployed charm
+        act: execute on_master_changed with no database,
+            with database but no master and
+            with database that has a master.
+        assert: the relation data is displayed with the correct values.
+        """
         # No database
         mock_event = MagicMock()
         mock_event.database = None
 
-        r = self.harness.charm._on_master_changed(mock_event)
-        self.assertEqual(r, None)
+        result = self.harness.charm._on_master_changed(mock_event)
+        self.assertEqual(result, None)
 
         # Database but no master
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
         mock_event.master = None
 
-        r = self.harness.charm._on_master_changed(mock_event)
+        result = self.harness.charm._on_master_changed(mock_event)
         reldata = self.harness.charm._stored.reldata
         self.assertEqual(reldata["pg"]["conn_str"], None)
         self.assertEqual(reldata["pg"]["db_uri"], None)
-        self.assertEqual(r, None)
+        self.assertEqual(result, None)
 
         # Database with master
         mock_event = MagicMock()
@@ -95,26 +124,33 @@ class TestGunicornK8sCharm(unittest.TestCase):
         mock_event.master.conn_str = TEST_PG_CONNSTR
         mock_event.master.uri = TEST_PG_URI
         with patch("charm.GunicornK8sCharm._on_config_changed") as on_config_changes:
-            r = self.harness.charm._on_master_changed(mock_event)
+            result = self.harness.charm._on_master_changed(mock_event)
 
             reldata = self.harness.charm._stored.reldata
             self.assertEqual(reldata["pg"]["conn_str"], mock_event.master.conn_str)
             self.assertEqual(reldata["pg"]["db_uri"], mock_event.master.uri)
-            self.assertEqual(r, None)
+            self.assertEqual(result, None)
             on_config_changes.assert_called_with(mock_event)
 
     def test_on_standby_changed_database_not_ready(self):
-        """Test the _on_standby_changed function."""
-
+        """
+        arrange: given the deployed charm
+        act: execute on_standby_changed
+        assert: there is no database
+        """
         mock_event = MagicMock()
         mock_event.database = None
 
-        r = self.harness.charm._on_standby_changed(mock_event)
-        self.assertEqual(r, None)
+        result = self.harness.charm._on_standby_changed(mock_event)
+        self.assertEqual(result, None)
 
     def test_on_standby_changed_database_ready(self):
-        """Test the _on_standby_changed function."""
-
+        """
+        arrange: given the deployed charm with a postgreSQL db
+            in standby ready
+        act: execute on_standby_changed
+        assert: the database is now in the reldata
+        """
         mock_event = MagicMock()
         mock_event.database = self.harness.charm.app.name
 
@@ -127,10 +163,21 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(reldata["pg"]["ro_uris"], [TEST_PG_URI])
 
     def test_on_mongodb_client_relation_changed(self):
-        """Test the _on_mongodb_client_relation_changed function."""
+        """
+        arrange: given the deployed charm
+        act: mock a MongoDB object and call it
+        assert: the object is referenced correctly in the reldata
+        """
 
-        class FakeMongoDB(object):
+        class FakeMongoDB:  # pylint: disable=too-few-public-methods
+            """Mock a MongoDB object."""
+
             def fetch_relation_data(self):
+                """Fetch the relation data from MongoDB.
+
+                Returns:
+                    Relation data to mock a MongoDB relation.
+                """
                 return {
                     1: {
                         "database": "gunicorn-k8s",
@@ -170,16 +217,22 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.assertEqual(self.harness.charm._stored.reldata, expected_data)
 
     def test_render_template(self):
-        """Test template rendering."""
-
+        """
+        arrange: given a template
+        act: render the template
+        assert: the template is rendered successfully
+        """
         for scenario, values in TEST_RENDER_TEMPLATE.items():
             with self.subTest(scenario=scenario):
-                r = self.harness.charm._render_template(values["tmpl"], values["ctx"])
-                self.assertEqual(r, values["expected"])
+                result = self.harness.charm._render_template(values["tmpl"], values["ctx"])
+                self.assertEqual(result, values["expected"])
 
     def test_get_context_from_relations(self):
-        """Test the _get_context_from_relations function."""
-
+        """
+        arrange: given the deployed charm with relations
+        act: execute _get_content_from relations
+        assert: the output and logs are correct
+        """
         self.harness.disable_hooks()  # no need for hooks to fire for this test
 
         # Set up PG "special case" relation data
@@ -218,22 +271,30 @@ class TestGunicornK8sCharm(unittest.TestCase):
         ]
 
         with self.assertLogs(level="WARNING") as logger:
-            r = self.harness.charm._get_context_from_relations()
+            result = self.harness.charm._get_context_from_relations()
 
         self.assertEqual(sorted(logger.output), sorted(expected_logger))
-        self.assertEqual(r, expected_ret)
+        self.assertEqual(result, expected_ret)
 
     def test_validate_yaml_proper_type_proper_yaml(self):
-        """Test the _validate_yaml function."""
-
+        """
+        arrange: given a correct yaml
+        act: execute _validate_yaml
+        assert: the method is successfully executed
+        """
         test_str = "a: b\n1: 2"
         expected_type = dict
 
-        r = self.harness.charm._validate_yaml(test_str, expected_type)
+        result = self.harness.charm._validate_yaml(test_str, expected_type)
 
-        self.assertEqual(r, None)
+        self.assertEqual(result, None)
 
     def test_validate_yaml_incorrect_yaml(self):
+        """
+        arrange: given an incorrect yaml
+        act: execute _validate_yaml
+        assert: the error displayed is correct
+        """
         test_str = "a: :"
         expected_type = dict
         expected_output = [
@@ -250,6 +311,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(sorted(logger.output), expected_output)
 
     def test_validate_yaml_incorrect_type_proper_yaml(self):
+        """
+        arrange: given an improper yaml
+        act: execute _validate_yaml
+        assert: the error displayed is correct
+        """
         test_str = "a: b"
         expected_type = str
         expected_output = [
@@ -263,40 +329,63 @@ class TestGunicornK8sCharm(unittest.TestCase):
         self.assertEqual(sorted(logger.output), expected_output)
 
     def test_get_external_hostname_not_empty(self):
+        """
+        arrange: given the deployed charm
+        act: set the external hostname to a value
+        assert: the external hostname has the set value
+        """
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"external_hostname": "123"})
         expected_ret = "123"
 
-        r = self.harness.charm._get_external_hostname()
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._get_external_hostname()
+        self.assertEqual(result, expected_ret)
 
     def test_get_external_hostname_empty(self):
+        """
+        arrange: given the deployed charm
+        act: set the external hostname to empty
+        assert: the external hostname has the default value
+        """
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"external_hostname": ""})
         expected_ret = "gunicorn-k8s"
 
-        r = self.harness.charm._get_external_hostname()
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._get_external_hostname()
+        self.assertEqual(result, expected_ret)
 
     def test_make_pod_env_empty_conf(self):
-        """Test the _make_pod_env function."""
-
+        """
+        arrange: given the deployed charm
+        act: try to update the config to an empty value
+        assert: the output config is correct
+        """
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": ""})
         expected_ret = {}
 
-        r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret, "No env")
+        result = self.harness.charm._make_pod_env()
+        self.assertEqual(result, expected_ret, "No env")
 
     def test_make_pod_env_proper_env_no_temp_rel(self):
+        """
+        arrange: given the deployed charm
+        act: try to update the config
+        assert: the output config is correct
+        """
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "a: b"})
         expected_ret = {"a": "b"}
 
-        r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._make_pod_env()
+        self.assertEqual(result, expected_ret)
 
     def test_make_pod_env_proper_env_temp_rel(self):
+        """
+        arrange: given the deployed charm
+        act: try to update the config and add relations
+        assert: the output config is correct
+        """
         # Proper env with templating/relations
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "DB: {{pg.db_uri}}\nTHING: {{myrel.thing}}}"})
@@ -314,11 +403,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         expected_ret = {"DB": TEST_PG_URI, "THING": "bli}"}
 
-        r = self.harness.charm._make_pod_env()
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._make_pod_env()
+        self.assertEqual(result, expected_ret)
 
     def test_make_pod_env_improper_env(self):
-        # Improper env
+        """
+        arrange: given the deployed charm
+        act: try to update the config with an improper variable
+        assert: the output message is correct
+        """
         self.harness.update_config(JUJU_DEFAULT_CONFIG)
         self.harness.update_config({"environment": "a: :"})
         expected_output = [
@@ -333,7 +426,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.assertEqual(logger.output, expected_output)
 
     def test_get_gunicorn_pebble_config(self):
-        """Test the _get_gunicorn_pebble_config function."""
+        """
+        arrange: given the deployed charm
+        act: try to get pebble's config
+        assert: the output config is correct
+        """
         mock_event = MagicMock()
         expected_ret = {
             "summary": "gunicorn layer",
@@ -355,11 +452,15 @@ class TestGunicornK8sCharm(unittest.TestCase):
             },
         }
 
-        r = self.harness.charm._get_gunicorn_pebble_config(mock_event)
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._get_gunicorn_pebble_config(mock_event)
+        self.assertEqual(result, expected_ret)
 
     def test_get_gunicorn_pebble_config_error(self):
-        """Test the _get_gunicorn_pebble_config function when throwing an error."""
+        """
+        arrange: given the deployed charm
+        act: try to get pebble's config facing an error
+        assert: the error and output messages are correct
+        """
         expected_error = "Error getting pod_env_config"
         expected_ret = {}
         mock_event = MagicMock()
@@ -372,45 +473,69 @@ class TestGunicornK8sCharm(unittest.TestCase):
             self.assertTrue(expected_error in logger.output[0])
 
     def test_on_gunicorn_pebble_ready_no_problem(self):
-        """Test the _on_gunicorn_pebble_ready function."""
-
+        """
+        arrange: given the gunicorn container
+        act: mark it as ready
+        assert: the event handler executes successfully
+        """
         mock_event = MagicMock()
         expected_ret = None
 
-        r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
+        self.assertEqual(result, expected_ret)
 
     def test_on_statsd_prometheus_exporter_pebble_ready(self):
-        """Test the _on_statsd_prometheus_exporter_pebble_ready function."""
-
+        """
+        arrange: given the statsd container
+        act: mark it as ready
+        assert: the event handler executes successfully
+        """
         mock_event = MagicMock()
         expected_ret = None
 
-        r = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
+        self.assertEqual(result, expected_ret)
 
     def test_configure_workload_no_problem(self):
-        """Test the _configure_workload function."""
-
+        """
+        arrange: given a mock event
+        act: execute configure_workload
+        assert: the method executes successfully
+        """
         mock_event = MagicMock()
         expected_ret = None
 
-        r = self.harness.charm._configure_workload(mock_event)
-        self.assertEqual(r, expected_ret)
+        result = self.harness.charm._configure_workload(mock_event)
+        self.assertEqual(result, expected_ret)
 
     def test_configure_workload_gunicorn_pebble_not_ready(self):
+        """
+        arrange: given the deployed charm's statsd container
+        act: mark it as ready
+        assert: the deployment must be in maintenance
+        """
         self.harness.container_pebble_ready("statsd-prometheus-exporter")
         self.assertEqual(
             self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
         )
 
     def test_configure_workload_statsd_pebble_not_ready(self):
+        """
+        arrange: given the deployed charm's gunicorn container
+        act: mark it as ready
+        assert: the deployment must be in maintenance
+        """
         self.harness.container_pebble_ready("gunicorn")
         self.assertEqual(
             self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
         )
 
     def test_configure_workload_exception(self):
+        """
+        arrange: given the deployed charm's containers
+        act: mark them as ready with a wrong command
+        assert: the deployment must be blocked
+        """
         with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
             pebble_mock.replan_services.side_effect = pebble.ChangeError("abc", "def")
             self.harness.container_pebble_ready("gunicorn")
@@ -421,6 +546,11 @@ class TestGunicornK8sCharm(unittest.TestCase):
             )
 
     def test_configure_workload(self):
+        """
+        arrange: given the deployed charm's containers
+        act: mark them as ready
+        assert: the deployment must be active
+        """
         self.harness.container_pebble_ready("gunicorn")
         self.harness.container_pebble_ready("statsd-prometheus-exporter")
         self.assertEqual(
@@ -429,45 +559,60 @@ class TestGunicornK8sCharm(unittest.TestCase):
         )
 
     def test_flatten_dict(self):
+        """
+        arrange: given a dict
+        act: when the flatten_dict function is ran on it
+        assert: it returns a flattened dict
+        """
         # Empty
-        dict = {}
-        expected_dict = dict
+        test_dict = {}
+        expected_dict = test_dict
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+        self.assertEqual(self.harness.charm._flatten_dict(test_dict), expected_dict)
 
         # One level
-        dict = {"a": 1}
-        expected_dict = dict
+        test_dict = {"a": 1}
+        expected_dict = test_dict
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+        self.assertEqual(self.harness.charm._flatten_dict(test_dict), expected_dict)
 
         # One level array
-        dict = {"a": [1, 2, 3]}
-        expected_dict = dict
+        test_dict = {"a": [1, 2, 3]}
+        expected_dict = test_dict
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+        self.assertEqual(self.harness.charm._flatten_dict(test_dict), expected_dict)
 
         # Two level
-        dict = {"a": {"b": 1, "c": 1}, "a2": {"b2": 2, "c2": 2}}
+        test_dict = {"a": {"b": 1, "c": 1}, "a2": {"b2": 2, "c2": 2}}
         expected_dict = {"a.b": 1, "a.c": 1, "a2.b2": 2, "a2.c2": 2}
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+        self.assertEqual(self.harness.charm._flatten_dict(test_dict), expected_dict)
 
         # Three level
-        dict = {"a": {"b": {"c": 1}}}
+        test_dict = {"a": {"b": {"c": 1}}}
         expected_dict = {"a.b.c": 1}
 
-        self.assertEqual(self.harness.charm._flatten_dict(dict), expected_dict)
+        self.assertEqual(self.harness.charm._flatten_dict(test_dict), expected_dict)
 
     def test_flatten_dict_args(self):
-        dict = {"a": {"b": {"c": 1}}}
+        """
+        arrange: given a dict
+        act: when the flatten_dict_ function is ran on it
+        assert: it returns a flattened dict
+        """
+        test_dict = {"a": {"b": {"c": 1}}}
         expected_dict = {"test._a_b_c": 1}
 
         self.assertEqual(
-            self.harness.charm._flatten_dict(dict, parent_key="test.", sep="_"), expected_dict
+            self.harness.charm._flatten_dict(test_dict, parent_key="test.", sep="_"), expected_dict
         )
 
     def test_on_show_environment_context_action(self):
+        """
+        arrange: given the deployed charm
+        act: when some environment variables are inserted via relations
+        assert: the environment variables are available
+        """
         self.harness.disable_hooks()  # no need for hooks to fire for this test
 
         # Set up PG "special case" relation data
@@ -486,7 +631,8 @@ class TestGunicornK8sCharm(unittest.TestCase):
 
         mock_event = MagicMock()
         expected = {
-            "available-variables": '[\n    "myrel.thing",\n    "pg.conn_str",\n    "pg.db_uri",\n    "pg.version"\n]'
+            "available-variables": '[\n    "myrel.thing",\n    "pg.conn_str",\n'
+            '    "pg.db_uri",\n    "pg.version"\n]'
         }
 
         self.harness.charm._on_show_environment_context_action(mock_event)

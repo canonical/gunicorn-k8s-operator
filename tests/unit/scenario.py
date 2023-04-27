@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
 """Define tests scenarios."""
 
 import logging
@@ -11,17 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 def get_juju_default_config() -> dict:
-    """Return the list of juju settings as defined in config.yaml."""
+    """Return the list of juju settings as defined in config.yaml.
 
+    Returns:
+        Juju settings as defined in config.yaml.
+    """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     config_yaml = Path(dir_path, "..", "..", "config.yaml")
-    with open(config_yaml, "r") as config:
+    with open(config_yaml, "r", encoding="UTF-8") as config:
         loaded_config = yaml.safe_load(config.read())
 
     ret = {}
 
-    for k, v in loaded_config["options"].items():
-        ret[k] = v["default"]
+    for key, value in loaded_config["options"].items():
+        ret[key] = value["default"]
 
     return ret
 
