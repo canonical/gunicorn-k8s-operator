@@ -457,7 +457,7 @@ class GunicornK8sCharm(CharmBase):
 
         return None
 
-    def _make_pod_env(self) -> dict | bool | set | str:
+    def _make_pod_env(self) -> Union[dict, bool, set, str]:
         """Return an envConfig with some core configuration.
 
         Returns:
