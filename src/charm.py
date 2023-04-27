@@ -10,6 +10,7 @@
 import json
 import logging
 from collections.abc import MutableMapping
+from typing import Union
 
 import ops
 import pgsql
@@ -423,7 +424,7 @@ class GunicornK8sCharm(CharmBase):
 
         return ctx
 
-    def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> bool | None:
+    def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> Union[bool, None]:
         """Validate that the supplied YAML is parsed into the supplied type.
 
         Args:
