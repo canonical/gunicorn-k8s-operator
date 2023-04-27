@@ -2,6 +2,8 @@
 # See LICENSE file for licensing details.
 
 """Fixtures for Gunicorn charm integration tests."""
+
+# pylint: disable=redefined-outer-name
 from pathlib import Path
 
 import pytest
@@ -26,7 +28,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
 
 
 @pytest.fixture(scope="module")
-def statsd_exporter_image():
+def statsd_exporter_image(metadata):
     """Provides the statsd prometheus exporter image from the metadata."""
     yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
 
@@ -40,6 +42,9 @@ def influx_model_name():
 @pytest_asyncio.fixture(scope="module")
 async def app(
     ops_test: OpsTest,
+    gunicorn_image: str,
+    statsd_exporter_image: str,
+    influx_model_name: str,
 ):
     """
     Gunicorn charm used for integration testing.
@@ -52,7 +57,7 @@ async def app(
             lambda item: item[1]["cloud"] == "localhost",
             yaml.safe_load(result_stdout)["controllers"].items(),
         ),
-        "default",
+        "localhost",
     )[0]
     await ops_test.juju(
         "add-model",
