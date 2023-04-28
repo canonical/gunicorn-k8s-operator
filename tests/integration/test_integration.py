@@ -11,7 +11,7 @@ from ops.model import ActiveStatus, Application
 from pytest_operator.plugin import OpsTest
 
 
-async def test_status(ops_test: OpsTest):
+async def test_status(ops_test: OpsTest, app: Application):  # pylint: disable=unused-argument
     """
     arrange: given that the gunicorn application is correctly deployed
     act: when we check the status of the applications
@@ -53,7 +53,9 @@ async def test_workload_psql_var(ops_test: OpsTest, app: Application):
     assert "TEST_ENV_VAR: postgresql://gunicorn-k8s:" in response.text
 
 
-async def test_show_environment_context_action(app: Application):
+async def test_show_environment_context_action(  # pylint: disable=unused-argument
+    ops_test: OpsTest, app: Application
+):
     """
     arrange: given that the gunicorn application is deployed and related to another charm
     act: when the show-environment-context is ran
