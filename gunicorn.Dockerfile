@@ -4,6 +4,8 @@ FROM ubuntu:jammy
 
 ENV DEBIAN_FRONTEND noninteractive
 
+USER root
+
 RUN apt-get update \
 &&  apt-get upgrade -y \
 &&  apt-get install -y --no-install-recommends gunicorn python3-psycopg2 \
@@ -21,3 +23,5 @@ ENV APP_WSGI app:app
 ENV APP_NAME my-awesome-app
 
 COPY ./docker/app .
+
+USER ubuntu

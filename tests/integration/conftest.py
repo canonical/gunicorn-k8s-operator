@@ -3,8 +3,7 @@
 
 """Fixtures for Gunicorn charm integration tests."""
 
-# Disable until linting is addressed
-# pylint: disable=redefined-outer-name, stop-iteration-return
+# pylint: disable=redefined-outer-name
 from pathlib import Path
 
 import pytest
@@ -57,7 +56,8 @@ async def app(
         filter(
             lambda item: item[1]["cloud"] == "localhost",
             yaml.safe_load(result_stdout)["controllers"].items(),
-        )
+        ),
+        "localhost",
     )[0]
     await ops_test.juju(
         "add-model",
