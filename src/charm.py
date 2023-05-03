@@ -105,7 +105,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle changes to the MongoDB relation.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         # mypy does not recognize the operand type
         if "mongodb" not in self._stored.reldata:  # type: ignore[operator]
@@ -120,7 +120,7 @@ class GunicornK8sCharm(CharmBase):
             self._configure_workload(event)
 
     def _get_external_hostname(self) -> str:
-        """Assign the hostname according to the config option.
+        """Retrieve the hostname according to the config option.
 
         If empty, default to the app name.
 
@@ -136,7 +136,7 @@ class GunicornK8sCharm(CharmBase):
         """Generate gunicorn's container pebble config.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
 
         Returns:
             Gunicorn container's pebble config
@@ -219,7 +219,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle the config changed event.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         self._configure_workload(event)
 
@@ -227,7 +227,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle the workload ready event.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         self._configure_workload(event)
 
@@ -235,7 +235,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle event for show-environment-context action.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         logger.info("Action show-environment-context launched")
         ctx = self._get_context_from_relations()
@@ -249,7 +249,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle the workload ready event.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         self._configure_workload(event)
 
@@ -257,7 +257,7 @@ class GunicornK8sCharm(CharmBase):
         """Configure the workload container.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         gunicorn_pebble_config = self._get_gunicorn_pebble_config(event)
         if not gunicorn_pebble_config:
@@ -317,7 +317,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle db-relation-joined.
 
         Args:
-            event: -Event that triggers this handler.
+            event: Event triggering this handler.
         """
         if self.model.unit.is_leader():
             # Provide requirements to the PostgreSQL server.
@@ -331,7 +331,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle changes in the primary database unit.
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         if event.database != self.app.name:
             # Leader has not yet set requirements. Wait until next
@@ -352,7 +352,7 @@ class GunicornK8sCharm(CharmBase):
         """Handle changes in the secondary database unit(s).
 
         Args:
-            event: Event that triggers this handler.
+            event: Event triggering this handler.
         """
         if event.database != self.app.name:
             # Leader has not yet set requirements. Wait until next
@@ -424,23 +424,23 @@ class GunicornK8sCharm(CharmBase):
 
         return ctx
 
-    def _validate_yaml(self, supposed_yaml: str, expected_type: type) -> Union[bool, None]:
+    def _validate_yaml(self, yaml_content: str, expected_type: type) -> Union[bool, None]:
         """Validate that the supplied YAML is parsed into the supplied type.
 
         Args:
-            supposed_yaml: Yaml content to validate.
+            yaml_content: Yaml content to validate.
             expected_type: Expected yaml type.
 
         Returns:
-            An error if the validation goes wrong.
+            An error if the yaml is incorrect.
         """
         err = False
         parsed = None
 
         try:
-            parsed = yaml.safe_load(supposed_yaml)
+            parsed = yaml.safe_load(yaml_content)
         except yaml.scanner.ScannerError as error:
-            logger.error("Error when parsing the following YAML : %s : %s", supposed_yaml, error)
+            logger.error("Error when parsing the following YAML : %s : %s", yaml_content, error)
             err = True
         else:
             if not isinstance(parsed, expected_type):
@@ -449,7 +449,7 @@ class GunicornK8sCharm(CharmBase):
                     "Expected type '%s' but got '%s' when parsing YAML : %s",
                     expected_type,
                     parsed.__class__,
-                    supposed_yaml,
+                    yaml_content,
                 )
 
         if err:
