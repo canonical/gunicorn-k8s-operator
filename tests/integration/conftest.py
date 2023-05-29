@@ -90,7 +90,7 @@ async def app(
     }
     assert ops_test.model
     application = await ops_test.model.deploy(charm, resources=resources, series="focal")
-    await ops_test.model.deploy("postgresql-k8s", series="jammy")
+    await ops_test.model.deploy("postgresql-k8s", channel="latest/stable", series="focal")
     await ops_test.model.add_relation(
         "postgresql-k8s:db",
         "gunicorn-k8s:pg",
