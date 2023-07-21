@@ -26,6 +26,7 @@ def gunicorn_image(pytestconfig: pytest.Config):
     assert value is not None, "please specify the --gunicorn-image command line option"
     yield value
 
+
 @pytest.fixture(scope="module")
 def charm_file(pytestconfig: pytest.Config):
     """Get the gunicorn image."""
