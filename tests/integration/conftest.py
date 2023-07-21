@@ -49,6 +49,7 @@ def influx_model_name():
 @pytest_asyncio.fixture(scope="module")
 async def app(
     ops_test: OpsTest,
+    charm_file: str,
     gunicorn_image: str,
     statsd_exporter_image: str,
     influx_model_name: str,
