@@ -5,7 +5,7 @@ display-name: Gunicorn
 summary: Gunicorn charm for multiple workloads.
 docs: https://discourse.charmhub.io/t/gunicorn-docs-index/4606
 maintainers:
-  - launchpad.net/~canonical-is-devops
+  - https://launchpad.net/~canonical-is-devops
 issues: https://github.com/canonical/gunicorn-k8s-operator/issues
 description: |
   A [Juju](https://juju.is/) [charm](https://juju.is/docs/olm/charmed-operators)
