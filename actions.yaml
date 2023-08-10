@@ -1,0 +1,4 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+show-environment-context:
+  description: List variables available for use in the `environment` config option

@@ -1,3 +1,5 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
 options:
   environment:
     type: string
@@ -6,13 +8,22 @@ options:
       to the environment of the container. The context used to render the template
       is filled with relation data. For example, if you use :
         DEBUG_LEVEL: 2
-        DB_URI: {{pg.uri}}
+        DB_URI: {{pg.db_uri}}
       your pods will get the "DEBUG_LEVEL" environment variable set to 2, and
-      the "DB_URI" environment variable will be set to the "uri" relation data
+      the "DB_URI" environment variable will be set to the "db_uri" relation data
       item provided by the "pg" relation.
     default: ''
   external_hostname:
     type: string
     description: >
-      External hostname this gunicorn app should respond to (required).
-    default: 'foo.internal'
+      External hostname this gunicorn app should respond to.
+      If left blank, the juju application name will be used.
+    default: ""
+  external_port:
+    type: int
+    description: "External port for Ingress configuration."
+    default: 8080
+  startup_command:
+    type: string
+    description: Command required to start up the docker image provided.
+    default: "/srv/gunicorn/run"
