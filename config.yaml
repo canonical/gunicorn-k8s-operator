@@ -12,7 +12,9 @@ options:
       your pods will get the "DEBUG_LEVEL" environment variable set to 2, and
       the "DB_URI" environment variable will be set to the "db_uri" relation data
       item provided by the "pg" relation.
-    default: ''
+    default: |
+      APP_WSGI: "app:app"
+      APP_NAME: "my-awesome-app"
   external_hostname:
     type: string
     description: >

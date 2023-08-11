@@ -1,0 +1,23 @@
+name: gunicorn-k8s-operator
+summary: An OCI image for use with the gunicorn-k8s-operator.
+description: Runs a basic gunicorn workload that dumps environment variables to a web page.
+license: Apache-2.0
+
+version: "1.0"
+base: bare
+build_base: ubuntu:22.04
+platforms:
+  amd64:
+
+parts:
+  gunicorn-app:
+    stage-packages:
+    - bash
+    - coreutils
+    - gunicorn
+    - python3-psycopg2
+    plugin: dump
+    source: ./files/
+    organize:
+      run.sh: srv/gunicorn/run
+      app/app.py: srv/gunicorn/app.py
