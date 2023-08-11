@@ -20,14 +20,6 @@ def metadata():
 
 
 @pytest.fixture(scope="module")
-def gunicorn_image(pytestconfig: pytest.Config):
-    """Get the gunicorn image."""
-    value = pytestconfig.getoption("--gunicorn-image")
-    assert value is not None, "please specify the --gunicorn-image command line option"
-    yield value
-
-
-@pytest.fixture(scope="module")
 def statsd_exporter_image(metadata):
     """Provides the statsd prometheus exporter image from the metadata."""
     yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
@@ -42,7 +34,6 @@ def influx_model_name():
 @pytest_asyncio.fixture(scope="module")
 async def app(
     ops_test: OpsTest,
-    gunicorn_image: str,
     statsd_exporter_image: str,
     influx_model_name: str,
     pytestconfig: pytest.Config,
@@ -85,7 +76,7 @@ async def app(
         check=True,
     )
     resources = {
-        "gunicorn-image": gunicorn_image,
+        "gunicorn-image": pytestconfig.getoption("--gunicorn-k8s-operator-image"),
         "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
     assert ops_test.model

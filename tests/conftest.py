@@ -11,4 +11,4 @@ def pytest_addoption(parser):
         parser: Pytest parser.
     """
     parser.addoption("--charm-file", action="store")
-    parser.addoption("--gunicorn-image", action="store")
+    parser.addoption("--gunicorn-k8s-operator-image", action="store")
