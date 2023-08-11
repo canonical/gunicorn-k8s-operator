@@ -40,7 +40,13 @@ async def test_workload_psql_var(ops_test: OpsTest, app: Application):
     # We cannot make mypy recognize the getters and setters of the
     # application's config or the status, so ignore mypy error
     await app.set_config(  # type: ignore[attr-defined]
-        {"environment": "TEST_ENV_VAR: {{pg.db_uri}}"}
+        {
+            "environment": (
+                "APP_WSGI: 'app:app'\n"
+                "APP_NAME: 'my-awesome-app'\n"
+                "TEST_ENV_VAR: {{pg.db_uri}}"
+            )
+        }
     )
     config = await app.get_config()  # type: ignore[attr-defined]
     assert config["environment"]["value"] == "TEST_ENV_VAR: {{pg.db_uri}}"
