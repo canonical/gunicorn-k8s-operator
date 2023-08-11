@@ -17,7 +17,7 @@ parts:
     - gunicorn
     - python3-psycopg2
     plugin: dump
-    source: ./gunicorn_image/files/
+    source: ./files/
     organize:
       run.sh: srv/gunicorn/run
       app/app.py: srv/gunicorn/app.py
