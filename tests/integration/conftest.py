@@ -28,14 +28,6 @@ def gunicorn_image(pytestconfig: pytest.Config):
 
 
 @pytest.fixture(scope="module")
-def charm_file(pytestconfig: pytest.Config):
-    """Get the gunicorn image."""
-    value = pytestconfig.getoption("--charm-file")
-    assert value is not None, "please specify the --charm-file command line option"
-    yield f"./{value}"
-
-
-@pytest.fixture(scope="module")
 def statsd_exporter_image(metadata):
     """Provides the statsd prometheus exporter image from the metadata."""
     yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
@@ -50,10 +42,10 @@ def influx_model_name():
 @pytest_asyncio.fixture(scope="module")
 async def app(
     ops_test: OpsTest,
-    charm_file: str,
     gunicorn_image: str,
     statsd_exporter_image: str,
     influx_model_name: str,
+    pytestconfig: pytest.Config,
 ):
     """
     Gunicorn charm used for integration testing.
@@ -97,7 +89,8 @@ async def app(
         "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
     assert ops_test.model
-    application = await ops_test.model.deploy(charm_file, resources=resources, series="focal")
+    charm = pytestconfig.getoption("--charm-file")
+    application = await ops_test.model.deploy(f"./{charm}", resources=resources, series="focal")
     await ops_test.model.deploy("postgresql-k8s", channel="latest/stable", series="focal")
     await ops_test.model.add_relation(
         "postgresql-k8s:db",
