@@ -2,8 +2,8 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-exec gunicorn "${APP_WSGI}" \
-  --name="${APP_NAME}" \
+exec gunicorn "${APP_WSGI:-app:app}" \
+  --name="${APP_NAME:-my-awesome-app}" \
   --bind=0.0.0.0:8080 \
   --workers="${APP_WORKERS:-1}" \
   --worker-class="${WORKER_CLASS:-sync}" \
