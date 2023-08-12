@@ -442,10 +442,6 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
                     "summary": "gunicorn service",
                     "command": "/srv/gunicorn/run",
                     "startup": "enabled",
-                    "environment": {
-                        "APP_NAME": "my-awesome-app",
-                        "APP_WSGI": "app:app",
-                    },
                 }
             },
             "checks": {
