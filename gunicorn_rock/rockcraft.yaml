@@ -1,7 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-name: gunicorn-k8s-operator
+name: gunicorn
 summary: An OCI image for use with the gunicorn-k8s-operator.
 description: Runs a basic gunicorn workload that dumps environment variables to a web page.
 license: Apache-2.0
