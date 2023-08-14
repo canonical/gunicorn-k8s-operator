@@ -76,7 +76,7 @@ async def app(
         check=True,
     )
     resources = {
-        "gunicorn-image": pytestconfig.getoption("--gunicorn-k8s-operator-image"),
+        "gunicorn-image": pytestconfig.getoption("--gunicorn-image"),
         "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
     assert ops_test.model
