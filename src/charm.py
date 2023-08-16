@@ -9,6 +9,7 @@
 """Charm for Gunicorn on kubernetes."""
 import json
 import logging
+import typing
 from collections.abc import MutableMapping
 from typing import Union
 
@@ -132,7 +133,7 @@ class GunicornK8sCharm(CharmBase):
             hostname = self.app.name
         return hostname
 
-    def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> dict:
+    def _get_gunicorn_pebble_config(self, event: ops.framework.EventBase) -> ops.pebble.LayerDict:
         """Generate gunicorn's container pebble config.
 
         Args:
@@ -184,9 +185,9 @@ class GunicornK8sCharm(CharmBase):
 
         if pod_env_config:
             pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
-        return pebble_config
+        return typing.cast(ops.pebble.LayerDict, pebble_config)
 
-    def _get_statsd_pebble_config(self) -> dict:
+    def _get_statsd_pebble_config(self) -> ops.pebble.LayerDict:
         """Generate statsd exporter pebble config.
 
         Returns:
@@ -213,7 +214,7 @@ class GunicornK8sCharm(CharmBase):
             },
         }
 
-        return pebble_config
+        return typing.cast(ops.pebble.LayerDict, pebble_config)
 
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
         """Handle the config changed event.
