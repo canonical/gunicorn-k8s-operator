@@ -28,6 +28,17 @@ For overall concepts related to using Juju
 recommend
 [this how to on using MicroK8s with Juju](https://juju.is/docs/microk8s-cloud).
 
+Please generate src documentation for every commit. See the section below for more details.
+
+### Generating src docs for every commit
+
+Run the following command:
+
+```bash
+echo -e "tox -e src-docs\ngit add src-docs\n" >> .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
 ## How to deploy this charm (quick guide)
 
 To deploy the charm and relate it to

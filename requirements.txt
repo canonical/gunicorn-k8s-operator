@@ -1,2 +1,3 @@
+cosl
 ops==2.6.0
 ops-lib-pgsql
