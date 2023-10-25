@@ -9,6 +9,7 @@
 """Charm for Gunicorn on kubernetes."""
 import json
 import logging
+import textwrap
 import typing
 from collections.abc import MutableMapping
 from typing import Union
@@ -187,35 +188,6 @@ class GunicornK8sCharm(CharmBase):
             pebble_config["services"]["gunicorn"]["environment"] = pod_env_config
         return typing.cast(ops.pebble.LayerDict, pebble_config)
 
-    def _get_statsd_pebble_config(self) -> ops.pebble.LayerDict:
-        """Generate statsd exporter pebble config.
-
-        Returns:
-            Statsd container's pebble config
-        """
-        pebble_config = {
-            "summary": "statsd exporter layer",
-            "description": "statsd exporter layer",
-            "services": {
-                "statsd-prometheus-exporter": {
-                    "override": "replace",
-                    "summary": "statsd exporter service",
-                    "user": "nobody",
-                    "command": "/bin/statsd_exporter",
-                    "startup": "enabled",
-                }
-            },
-            "checks": {
-                "container-ready": {
-                    "override": "replace",
-                    "level": "ready",
-                    "http": {"url": "http://localhost:9102/metrics"},
-                },
-            },
-        }
-
-        return typing.cast(ops.pebble.LayerDict, pebble_config)
-
     def _on_config_changed(self, event: ops.framework.EventBase) -> None:
         """Handle the config changed event.
 
@@ -246,13 +218,49 @@ class GunicornK8sCharm(CharmBase):
 
         event.set_results({"available-variables": json.dumps(ctx, indent=4)})
 
-    def _on_statsd_prometheus_exporter_pebble_ready(self, event: ops.framework.EventBase) -> None:
+    def _on_statsd_prometheus_exporter_pebble_ready(self, _event: ops.framework.EventBase) -> None:
         """Handle the workload ready event.
 
         Args:
-            event: Event triggering this handler.
+            _event: Event triggering this handler.
         """
-        self._configure_workload(event)
+        statsd_container = self.unit.get_container("statsd-prometheus-exporter")
+        statsd_layer = ops.pebble.LayerDict(
+            **{
+                "summary": "statsd exporter layer",
+                "description": "statsd exporter layer",
+                "services": {
+                    "statsd-prometheus-exporter": {
+                        "override": "replace",
+                        "summary": "statsd exporter service",
+                        "user": "nobody",
+                        "command": "/bin/statsd_exporter --statsd.mapping-config=/statsd.conf",
+                        "startup": "enabled",
+                    }
+                },
+                "checks": {
+                    "container-ready": {
+                        "override": "replace",
+                        "level": "ready",
+                        "http": {"url": "http://localhost:9102/metrics"},
+                    },
+                },
+            }
+        )
+        statsd_container.push(
+            "/statsd.conf",
+            textwrap.dedent(
+                """\
+                mappings:
+                  - match: gunicorn.request.status.*
+                    name: gunicorn_response_code
+                    labels:
+                      status: $1
+                """
+            ),
+        )
+        statsd_container.add_layer("statsd-prometheus-exporter", statsd_layer, combine=True)
+        statsd_container.pebble.replan_services()
 
     def _configure_workload(self, event: ops.charm.EventBase) -> None:
         """Configure the workload container.
@@ -264,7 +272,6 @@ class GunicornK8sCharm(CharmBase):
         if not gunicorn_pebble_config:
             # Charm will be in blocked status.
             return
-        statsd_pebble_config = self._get_statsd_pebble_config()
 
         # Ensure the ingress relation has the external hostname.
         self.ingress.update_config(
@@ -275,9 +282,8 @@ class GunicornK8sCharm(CharmBase):
         )
 
         gunicorn_container = self.unit.get_container("gunicorn")
-        statsd_container = self.unit.get_container("statsd-prometheus-exporter")
         # pebble may not be ready, in which case we just return
-        if not gunicorn_container.can_connect() or not statsd_container.can_connect():
+        if not gunicorn_container.can_connect():
             self.unit.status = MaintenanceStatus("waiting for pebble to start")
             logger.debug("waiting for pebble to start")
             return
@@ -293,11 +299,6 @@ class GunicornK8sCharm(CharmBase):
                 "Charm's startup command may be wrong, please check the config"
             )
             return
-
-        statsd_container.add_layer(
-            "statsd-prometheus-exporter", statsd_pebble_config, combine=True
-        )
-        statsd_container.pebble.replan_services()
 
         self.unit.status = ActiveStatus()
 

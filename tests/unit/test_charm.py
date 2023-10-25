@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from ops import pebble, testing
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.model import ActiveStatus, BlockedStatus
 from scenario import (  # pylint: disable=import-error
     JUJU_DEFAULT_CONFIG,
     TEST_PG_CONNSTR,
@@ -509,28 +509,6 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
         result = self.harness.charm._configure_workload(mock_event)
         self.assertEqual(result, expected_ret)
 
-    def test_configure_workload_gunicorn_pebble_not_ready(self):
-        """
-        arrange: given the deployed charm's statsd container
-        act: mark it as ready
-        assert: the deployment must be in maintenance
-        """
-        self.harness.container_pebble_ready("statsd-prometheus-exporter")
-        self.assertEqual(
-            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
-        )
-
-    def test_configure_workload_statsd_pebble_not_ready(self):
-        """
-        arrange: given the deployed charm's gunicorn container
-        act: mark it as ready
-        assert: the deployment must be in maintenance
-        """
-        self.harness.container_pebble_ready("gunicorn")
-        self.assertEqual(
-            self.harness.model.unit.status, MaintenanceStatus("waiting for pebble to start")
-        )
-
     def test_configure_workload_exception(self):
         """
         arrange: given the deployed charm's containers
@@ -540,7 +518,6 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
         with patch("ops.model.Container.pebble", return_value=MagicMock()) as pebble_mock:
             pebble_mock.replan_services.side_effect = pebble.ChangeError("abc", "def")
             self.harness.container_pebble_ready("gunicorn")
-            self.harness.container_pebble_ready("statsd-prometheus-exporter")
             self.assertEqual(
                 self.harness.model.unit.status,
                 BlockedStatus("Charm's startup command may be wrong, please check the config"),
