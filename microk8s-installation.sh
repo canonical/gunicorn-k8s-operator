@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 # This charm uses both LXD and microk8s for the integration tests
