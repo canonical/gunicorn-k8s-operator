@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 # Since there are several cases of this mypy error and we cannot stop using
 # what mypy considers to be overloaded functions, the index check on mypy must be ignored.
