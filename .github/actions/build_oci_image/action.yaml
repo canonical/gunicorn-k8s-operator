@@ -27,7 +27,7 @@ runs:
         file: ${{ inputs.dockerfile }}
         outputs: type=docker,dest=/tmp/${{ inputs.resource-name }}.tar
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.resource-name }}
         path: /tmp/${{ inputs.resource-name }}.tar
