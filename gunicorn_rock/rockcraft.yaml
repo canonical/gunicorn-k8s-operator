@@ -19,6 +19,8 @@ parts:
     - coreutils
     - gunicorn
     - python3-psycopg2
+    stage-snaps:
+    - gtrkiller-statsd-prometheus-exporter/latest/edge
     plugin: dump
     source: ./files/
     organize:
