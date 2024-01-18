@@ -20,12 +20,6 @@ def metadata():
 
 
 @pytest.fixture(scope="module")
-def statsd_exporter_image(metadata):
-    """Provides the statsd prometheus exporter image from the metadata."""
-    yield metadata["resources"]["statsd-prometheus-exporter-image"]["upstream-source"]
-
-
-@pytest.fixture(scope="module")
 def influx_model_name():
     """Get influx's model name for testing."""
     return "influxdbmodel"
@@ -34,7 +28,6 @@ def influx_model_name():
 @pytest_asyncio.fixture(scope="module")
 async def app(
     ops_test: OpsTest,
-    statsd_exporter_image: str,
     influx_model_name: str,
     pytestconfig: pytest.Config,
 ):
@@ -77,7 +70,6 @@ async def app(
     )
     resources = {
         "gunicorn-image": pytestconfig.getoption("--gunicorn-image"),
-        "statsd-prometheus-exporter-image": statsd_exporter_image,
     }
     assert ops_test.model
     charm = pytestconfig.getoption("--charm-file")

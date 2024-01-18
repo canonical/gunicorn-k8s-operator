@@ -34,7 +34,6 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
         self.harness = testing.Harness(GunicornK8sCharm)
         self.harness.begin()
         self.harness.add_oci_resource("gunicorn-image")
-        self.harness.add_oci_resource("statsd-prometheus-exporter-image")
 
     def tearDown(self):
         """Cleanup the harness."""
@@ -473,7 +472,7 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
                 self.assertEqual(config_output, expected_ret)
             self.assertTrue(expected_error in logger.output[0])
 
-    def test_on_gunicorn_pebble_ready_no_problem(self):
+    def test_on_pebble_ready_no_problem(self):
         """
         arrange: given the gunicorn container
         act: mark it as ready
@@ -482,19 +481,7 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
         mock_event = MagicMock()
         expected_ret = None
 
-        result = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
-        self.assertEqual(result, expected_ret)
-
-    def test_on_statsd_prometheus_exporter_pebble_ready(self):
-        """
-        arrange: given the statsd container
-        act: mark it as ready
-        assert: the event handler executes successfully
-        """
-        mock_event = MagicMock()
-        expected_ret = None
-
-        result = self.harness.charm._on_gunicorn_pebble_ready(mock_event)
+        result = self.harness.charm._on_pebble_ready(mock_event)
         self.assertEqual(result, expected_ret)
 
     def test_configure_workload_no_problem(self):
@@ -530,7 +517,6 @@ class TestGunicornK8sCharm(unittest.TestCase):  # pylint: disable=too-many-publi
         assert: the deployment must be active
         """
         self.harness.container_pebble_ready("gunicorn")
-        self.harness.container_pebble_ready("statsd-prometheus-exporter")
         self.assertEqual(
             self.harness.model.unit.status,
             ActiveStatus(),
