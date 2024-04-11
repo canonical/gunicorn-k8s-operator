@@ -125,7 +125,7 @@ class GunicornK8sCharm(CharmBase):
         Returns:
             The assigned hostname.
         """
-        hostname = self.config["external_hostname"]
+        hostname = typing.cast(str, self.config["external_hostname"])
         if hostname == "":
             hostname = self.app.name
         return hostname
@@ -459,7 +459,7 @@ class GunicornK8sCharm(CharmBase):
         Returns:
             A dictionary used for envConfig in podspec.
         """
-        env = self.model.config["environment"]
+        env = typing.cast(str, self.model.config["environment"])
 
         if not env:
             return {}
